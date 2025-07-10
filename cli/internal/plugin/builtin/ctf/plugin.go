@@ -17,22 +17,19 @@ import (
 	"ocm.software/open-component-model/bindings/go/plugin/manager/contracts"
 	"ocm.software/open-component-model/bindings/go/plugin/manager/registries/componentversionrepository"
 	"ocm.software/open-component-model/bindings/go/runtime"
-	builtinv1 "ocm.software/open-component-model/cli/internal/plugin/builtin/config/v1"
 )
 
 const Creator = "CTF Repository"
 
-func Register(registry *componentversionrepository.RepositoryRegistry, config *builtinv1.BuiltinPluginConfig, logger *slog.Logger) error {
+func Register(ctx context.Context, registry *componentversionrepository.RepositoryRegistry, logger *slog.Logger) error {
 	scheme := runtime.NewScheme()
 	repository.MustAddToScheme(scheme)
 
 	plugin := &Plugin{scheme: scheme, manifestCache: inmemory.New(), layerCache: inmemory.New()}
 
-	// Configure plugin if configuration is provided
-	if config != nil && logger != nil {
-		if err := plugin.Configure(config, logger); err != nil {
-			return fmt.Errorf("failed to configure CTF plugin: %w", err)
-		}
+	// Configure plugin with context and logger
+	if err := plugin.Configure(ctx, logger); err != nil {
+		return fmt.Errorf("failed to configure CTF plugin: %w", err)
 	}
 
 	return componentversionrepository.RegisterInternalComponentVersionRepositoryPlugin(
@@ -48,7 +45,6 @@ type Plugin struct {
 	scheme        *runtime.Scheme
 	manifestCache cache.OCIDescriptorCache
 	layerCache    cache.OCIDescriptorCache
-	config        *builtinv1.BuiltinPluginConfig
 	logger        *slog.Logger
 }
 
@@ -71,10 +67,8 @@ func (p *Plugin) GetComponentVersionRepository(ctx context.Context, repositorySp
 }
 
 // Configure configures the CTF Plugin with built-in plugin configuration.
-func (p *Plugin) Configure(config *builtinv1.BuiltinPluginConfig, logger *slog.Logger) error {
-	p.config = config
+func (p *Plugin) Configure(ctx context.Context, logger *slog.Logger) error {
 	p.logger = logger
-
 	return nil
 }
 

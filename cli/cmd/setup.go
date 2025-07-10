@@ -63,21 +63,19 @@ func setupPluginManager(cmd *cobra.Command) error {
 		slog.WarnContext(cmd.Context(), "could not get configuration to initialize plugin manager")
 	}
 
-	builtinPluginConfig, err := builtinConfig.GetMergedBuiltinPluginConfig(cmd, baseCfg)
-	if err != nil {
-		return fmt.Errorf("could not get built-in plugin configuration: %w", err)
-	}
+	// Apply CLI flags to context (for tempFolder)
+	ctx := builtinConfig.ApplyFlagsToContext(cmd.Context(), cmd)
 
 	builtinLogger, err := builtinConfig.GetBuiltinPluginLogger(cmd)
 	if err != nil {
 		return fmt.Errorf("could not get built-in plugin logger: %w", err)
 	}
 
-	if err := builtin.Register(pluginManager, builtinPluginConfig, builtinLogger); err != nil {
+	if err := builtin.Register(ctx, pluginManager, builtinLogger); err != nil {
 		return fmt.Errorf("could not register builtin plugins: %w", err)
 	}
 
-	ctx := ocmctx.WithPluginManager(cmd.Context(), pluginManager)
+	ctx = ocmctx.WithPluginManager(ctx, pluginManager)
 	cmd.SetContext(ctx)
 
 	return nil

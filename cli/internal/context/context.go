@@ -14,6 +14,7 @@ import (
 type ctxKey string
 
 const key ctxKey = "ocm.software/open-component-model/cli/internal/context"
+const tempFolderKey ctxKey = "ocm.software/open-component-model/cli/internal/context/tempFolder"
 
 // Context is the OCM Command Line context.
 // It contains pointers to centrally managed structures that are created
@@ -140,6 +141,23 @@ func WithContext(ctx context.Context, c *Context) context.Context {
 		return nil
 	}
 	return context.WithValue(ctx, key, c)
+}
+
+// WithTempFolder creates a new context with the given temp folder path.
+func WithTempFolder(ctx context.Context, tempFolder string) context.Context {
+	return context.WithValue(ctx, tempFolderKey, tempFolder)
+}
+
+// TempFolderFromContext retrieves the temp folder from the given context.
+// Returns empty string if not set.
+func TempFolderFromContext(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	if v, ok := ctx.Value(tempFolderKey).(string); ok {
+		return v
+	}
+	return ""
 }
 
 // retrieveOrCreateOCMContext retrieves the OCM context from the given context.

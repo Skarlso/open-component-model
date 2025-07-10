@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -10,9 +11,14 @@ import (
 
 	configv1 "ocm.software/open-component-model/bindings/go/configuration/v1"
 	"ocm.software/open-component-model/bindings/go/runtime"
+	internalctx "ocm.software/open-component-model/cli/internal/context"
 	"ocm.software/open-component-model/cli/internal/flags/enum"
 	"ocm.software/open-component-model/cli/internal/flags/log"
-	builtinv1 "ocm.software/open-component-model/cli/internal/plugin/builtin/config/v1"
+)
+
+const (
+	LoggingConfigType    = "logging.config.ocm.software"
+	AttributesConfigType = "attributes.config.ocm.software"
 )
 
 // AddBuiltinPluginFlags adds CLI flags for built-in plugin configuration.
@@ -20,35 +26,15 @@ func AddBuiltinPluginFlags(flags *pflag.FlagSet) {
 	flags.String("temp-folder", "", "Temporary folder location for the library and plugins.")
 }
 
-// GetMergedBuiltinPluginConfig creates builtin plugin configuration by merging config file and CLI flags.
-// CLI flags take precedence over configuration file settings.
-// The returned config includes log settings from the config file that can be overridden by existing CLI log flags.
-func GetMergedBuiltinPluginConfig(cmd *cobra.Command, config *configv1.Config) (*builtinv1.BuiltinPluginConfig, error) {
-	builtinConfig, err := builtinv1.LookupBuiltinPluginConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	// Override log settings with CLI flags if they are set
-	if cmd.Flags().Changed(log.LevelFlagName) {
-		if level, err := enum.Get(cmd.Flags(), log.LevelFlagName); err == nil {
-			builtinConfig.LogLevel = builtinv1.LogLevel(level)
-		}
-	}
-
-	if cmd.Flags().Changed(log.FormatFlagName) {
-		if format, err := enum.Get(cmd.Flags(), log.FormatFlagName); err == nil {
-			builtinConfig.LogFormat = builtinv1.LogFormat(format)
-		}
-	}
-
+// ApplyFlagsToContext applies CLI flags to the context and returns updated context.
+// Sets tempFolder in context if the flag is provided.
+func ApplyFlagsToContext(ctx context.Context, cmd *cobra.Command) context.Context {
 	if cmd.Flags().Changed("temp-folder") {
-		if folder, err := cmd.Flags().GetString("temp-folder"); err == nil {
-			builtinConfig.TempFolder = folder
+		if folder, err := cmd.Flags().GetString("temp-folder"); err == nil && folder != "" {
+			ctx = internalctx.WithTempFolder(ctx, folder)
 		}
 	}
-
-	return builtinConfig, nil
+	return ctx
 }
 
 // GetBuiltinPluginLogger creates a logger for built-in plugins using the existing log infrastructure.
@@ -68,44 +54,105 @@ func GetMergedConfigWithCLIFlags(cmd *cobra.Command, baseConfig *configv1.Config
 		return baseConfig, nil
 	}
 
-	mergedBuiltinPluginConfig, err := GetMergedBuiltinPluginConfig(cmd, baseConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get built-in plugin configuration: %w", err)
-	}
-
-	// ensure we change a new config
 	mergedConfig := baseConfig.DeepCopy()
 
-	found := false
-	for i, cfg := range mergedConfig.Configurations {
-		// TODO: We only deal with one right now
-		if cfg.Type.String() == builtinv1.ConfigType {
-			// We found the existing config, encode it back and add it to the data.
-			encoded, err := yaml.Marshal(mergedBuiltinPluginConfig)
-			if err != nil {
-				return nil, fmt.Errorf("failed to encode merged built-in plugin configuration: %w", err)
-			}
-			mergedConfig.Configurations[i].Data = encoded
+	// Handle logging configuration
+	if cmd.Flags().Changed(log.LevelFlagName) || cmd.Flags().Changed(log.FormatFlagName) {
+		err := mergeLoggingConfig(cmd, mergedConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to merge logging configuration: %w", err)
+		}
+	}
 
-			// we found a config all good
+	// Handle attributes configuration (tempFolder)
+	if cmd.Flags().Changed("temp-folder") {
+		err := mergeAttributesConfig(cmd, mergedConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to merge attributes configuration: %w", err)
+		}
+	}
+
+	return mergedConfig, nil
+}
+
+// mergeLoggingConfig merges logging-related CLI flags into the configuration.
+func mergeLoggingConfig(cmd *cobra.Command, config *configv1.Config) error {
+	loggingConfig := make(map[string]string)
+
+	if cmd.Flags().Changed(log.LevelFlagName) {
+		if level, err := enum.Get(cmd.Flags(), log.LevelFlagName); err == nil {
+			loggingConfig["level"] = level
+		}
+	}
+
+	if cmd.Flags().Changed(log.FormatFlagName) {
+		if format, err := enum.Get(cmd.Flags(), log.FormatFlagName); err == nil {
+			loggingConfig["format"] = format
+		}
+	}
+
+	if len(loggingConfig) == 0 {
+		return nil
+	}
+
+	return mergeConfigType(config, LoggingConfigType, loggingConfig)
+}
+
+// mergeAttributesConfig merges attributes-related CLI flags into the configuration.
+func mergeAttributesConfig(cmd *cobra.Command, config *configv1.Config) error {
+	attributesConfig := make(map[string]string)
+
+	if cmd.Flags().Changed("temp-folder") {
+		if folder, err := cmd.Flags().GetString("temp-folder"); err == nil && folder != "" {
+			attributesConfig["tempFolder"] = folder
+		}
+	}
+
+	if len(attributesConfig) == 0 {
+		return nil
+	}
+
+	return mergeConfigType(config, AttributesConfigType, attributesConfig)
+}
+
+// mergeConfigType merges a map[string]string configuration into the config for a specific type.
+func mergeConfigType(config *configv1.Config, configType string, newConfig map[string]string) error {
+	found := false
+	for i, cfg := range config.Configurations {
+		if cfg.Type.String() == configType+"/v1" {
+			// Merge with existing config
+			existingConfig := make(map[string]string)
+			if err := yaml.Unmarshal(cfg.Data, &existingConfig); err != nil {
+				return fmt.Errorf("failed to unmarshal existing %s configuration: %w", configType, err)
+			}
+
+			// Override with new values
+			for k, v := range newConfig {
+				existingConfig[k] = v
+			}
+
+			encoded, err := yaml.Marshal(existingConfig)
+			if err != nil {
+				return fmt.Errorf("failed to encode merged %s configuration: %w", configType, err)
+			}
+			config.Configurations[i].Data = encoded
 			found = true
 			break
 		}
 	}
 
-	// If no built-in config was found in the original config, but we have CLI overrides,
-	// add the built-in config to the merged config
+	// If no config was found, create new one
 	if !found {
-		encoded, err := yaml.Marshal(mergedBuiltinPluginConfig)
+		encoded, err := yaml.Marshal(newConfig)
 		if err != nil {
-			return nil, fmt.Errorf("failed to encode built-in plugin configuration: %w", err)
+			return fmt.Errorf("failed to encode %s configuration: %w", configType, err)
 		}
 
-		mergedConfig.Configurations = append(mergedConfig.Configurations, &runtime.Raw{
-			Type: mergedBuiltinPluginConfig.GetType(),
+		config.Configurations = append(config.Configurations, &runtime.Raw{
+			Type: runtime.NewVersionedType(configType, "v1"),
 			Data: encoded,
 		})
 	}
 
-	return mergedConfig, nil
+	return nil
 }

@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -14,14 +15,13 @@ import (
 	"ocm.software/open-component-model/bindings/go/plugin/manager/registries/digestprocessor"
 	"ocm.software/open-component-model/bindings/go/plugin/manager/registries/resource"
 	"ocm.software/open-component-model/bindings/go/runtime"
-	builtinv1 "ocm.software/open-component-model/cli/internal/plugin/builtin/config/v1"
 )
 
 func Register(
+	ctx context.Context,
 	compverRegistry *componentversionrepository.RepositoryRegistry,
 	resRegistry *resource.ResourceRegistry,
 	digRegistry *digestprocessor.RepositoryRegistry,
-	config *builtinv1.BuiltinPluginConfig,
 	logger *slog.Logger,
 ) error {
 	scheme := runtime.NewScheme()
@@ -34,14 +34,13 @@ func Register(
 	cvRepoPlugin := ComponentVersionRepositoryPlugin{scheme: scheme, manifests: manifests, layers: layers}
 	resourceRepoPlugin := ResourceRepositoryPlugin{scheme: scheme, manifests: manifests, layers: layers}
 
-	// Configure plugins if configuration is provided
-	if config != nil {
-		if err := cvRepoPlugin.Configure(config, logger); err != nil {
-			return fmt.Errorf("failed to configure OCI component version repository plugin: %w", err)
-		}
-		if err := resourceRepoPlugin.Configure(config, logger); err != nil {
-			return fmt.Errorf("failed to configure OCI resource repository plugin: %w", err)
-		}
+	// Configure plugins with context and logger
+	// TODO: These aren't needed because we'll have the logger in the Context.
+	if err := cvRepoPlugin.Configure(ctx, logger); err != nil {
+		return fmt.Errorf("failed to configure OCI component version repository plugin: %w", err)
+	}
+	if err := resourceRepoPlugin.Configure(ctx, logger); err != nil {
+		return fmt.Errorf("failed to configure OCI resource repository plugin: %w", err)
 	}
 
 	return errors.Join(

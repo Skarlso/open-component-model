@@ -17,7 +17,6 @@ import (
 	"ocm.software/open-component-model/bindings/go/plugin/manager/contracts"
 	"ocm.software/open-component-model/bindings/go/plugin/manager/registries/componentversionrepository"
 	"ocm.software/open-component-model/bindings/go/runtime"
-	builtinv1 "ocm.software/open-component-model/cli/internal/plugin/builtin/config/v1"
 )
 
 type ComponentVersionRepositoryPlugin struct {
@@ -25,7 +24,6 @@ type ComponentVersionRepositoryPlugin struct {
 	scheme    *runtime.Scheme
 	manifests cache.OCIDescriptorCache
 	layers    cache.OCIDescriptorCache
-	config    *builtinv1.BuiltinPluginConfig
 	logger    *slog.Logger
 }
 
@@ -59,10 +57,8 @@ func (p *ComponentVersionRepositoryPlugin) GetComponentVersionRepository(ctx con
 }
 
 // Configure configures the ComponentVersionRepositoryPlugin with built-in plugin configuration.
-func (p *ComponentVersionRepositoryPlugin) Configure(config *builtinv1.BuiltinPluginConfig, logger *slog.Logger) error {
-	p.config = config
+func (p *ComponentVersionRepositoryPlugin) Configure(ctx context.Context, logger *slog.Logger) error {
 	p.logger = logger
-
 	return nil
 }
 

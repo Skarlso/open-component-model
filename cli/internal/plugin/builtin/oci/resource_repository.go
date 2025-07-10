@@ -14,16 +14,15 @@ import (
 	v1 "ocm.software/open-component-model/bindings/go/oci/spec/access/v1"
 	ociv1 "ocm.software/open-component-model/bindings/go/oci/spec/repository/v1/oci"
 	"ocm.software/open-component-model/bindings/go/runtime"
-	builtinv1 "ocm.software/open-component-model/cli/internal/plugin/builtin/config/v1"
 )
 
 type ResourceRepositoryPlugin struct {
 	scheme            *runtime.Scheme
 	manifests, layers cache.OCIDescriptorCache
-	config            *builtinv1.BuiltinPluginConfig
 	logger            *slog.Logger
 }
 
+// TODO: Add ways to extract config and logger from the context.
 func (p *ResourceRepositoryPlugin) GetResourceDigestProcessorCredentialConsumerIdentity(ctx context.Context, resource *descriptor.Resource) (runtime.Identity, error) {
 	t := resource.Access.GetType()
 	obj, err := p.scheme.NewObject(t)
@@ -138,10 +137,8 @@ func (p *ResourceRepositoryPlugin) DownloadResource(ctx context.Context, resourc
 }
 
 // Configure configures the ResourceRepositoryPlugin with built-in plugin configuration.
-func (p *ResourceRepositoryPlugin) Configure(config *builtinv1.BuiltinPluginConfig, logger *slog.Logger) error {
-	p.config = config
+func (p *ResourceRepositoryPlugin) Configure(ctx context.Context, logger *slog.Logger) error {
 	p.logger = logger
-
 	return nil
 }
 

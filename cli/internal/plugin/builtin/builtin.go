@@ -1,11 +1,11 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
 	"ocm.software/open-component-model/bindings/go/plugin/manager"
-	builtinv1 "ocm.software/open-component-model/cli/internal/plugin/builtin/config/v1"
 	ocicredentialplugin "ocm.software/open-component-model/cli/internal/plugin/builtin/credentials/oci"
 	ctfplugin "ocm.software/open-component-model/cli/internal/plugin/builtin/ctf"
 	"ocm.software/open-component-model/cli/internal/plugin/builtin/input/file"
@@ -13,23 +13,23 @@ import (
 	ociplugin "ocm.software/open-component-model/cli/internal/plugin/builtin/oci"
 )
 
-// Register registers built-in plugins with the plugin manager using the provided configuration.
-func Register(manager *manager.PluginManager, pluginConfig *builtinv1.BuiltinPluginConfig, logger *slog.Logger) error {
+// Register registers built-in plugins with the plugin manager using the provided context and logger.
+func Register(ctx context.Context, manager *manager.PluginManager, logger *slog.Logger) error {
 	if err := ocicredentialplugin.Register(manager.CredentialRepositoryRegistry); err != nil {
 		return fmt.Errorf("could not register OCI inbuilt credential plugin: %w", err)
 	}
 
 	if err := ociplugin.Register(
+		ctx,
 		manager.ComponentVersionRepositoryRegistry,
 		manager.ResourcePluginRegistry,
 		manager.DigestProcessorRegistry,
-		pluginConfig,
 		logger,
 	); err != nil {
 		return fmt.Errorf("could not register OCI inbuilt plugin: %w", err)
 	}
 
-	if err := ctfplugin.Register(manager.ComponentVersionRepositoryRegistry, pluginConfig, logger); err != nil {
+	if err := ctfplugin.Register(ctx, manager.ComponentVersionRepositoryRegistry, logger); err != nil {
 		return fmt.Errorf("could not register CTF inbuilt plugin: %w", err)
 	}
 	if err := file.Register(manager.InputRegistry); err != nil {
