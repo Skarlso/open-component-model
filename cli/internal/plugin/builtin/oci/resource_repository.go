@@ -23,6 +23,8 @@ type ResourceRepositoryPlugin struct {
 }
 
 // TODO: Add ways to extract config and logger from the context.
+// It's tricky because the context here is coming from construct which is a different package, meaning we would have to
+// expose the context handling library.
 func (p *ResourceRepositoryPlugin) GetResourceDigestProcessorCredentialConsumerIdentity(ctx context.Context, resource *descriptor.Resource) (runtime.Identity, error) {
 	t := resource.Access.GetType()
 	obj, err := p.scheme.NewObject(t)

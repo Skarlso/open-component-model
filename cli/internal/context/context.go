@@ -13,8 +13,10 @@ import (
 
 type ctxKey string
 
-const key ctxKey = "ocm.software/open-component-model/cli/internal/context"
-const tempFolderKey ctxKey = "ocm.software/open-component-model/cli/internal/context/tempFolder"
+const (
+	key           ctxKey = "ocm.software/open-component-model/cli/internal/context"
+	tempFolderKey ctxKey = "ocm.software/open-component-model/cli/internal/context/tempFolder"
+)
 
 // Context is the OCM Command Line context.
 // It contains pointers to centrally managed structures that are created
