@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 
 	ociImageSpecV1 "github.com/opencontainers/image-spec/specs-go/v1"
 	slogcontext "github.com/veqryn/slog-context"
@@ -78,10 +79,15 @@ type Repository struct {
 
 	// logger is the logger used for OCI operations.
 	logger *slog.Logger
+
+	mu sync.Mutex
 }
 
 // AddComponentVersion adds a new component version to the repository.
 func (repo *Repository) AddComponentVersion(ctx context.Context, descriptor *descriptor.Descriptor) (err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	component, version := descriptor.Component.Name, descriptor.Component.Version
 	done := log.Operation(ctx, "add component version", slog.String("component", component), slog.String("version", version))
@@ -116,6 +122,8 @@ func (repo *Repository) AddComponentVersion(ctx context.Context, descriptor *des
 }
 
 func (repo *Repository) ListComponentVersions(ctx context.Context, component string) (_ []string, err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	done := log.Operation(ctx, "list component versions",
 		slog.String("component", component))
@@ -162,6 +170,8 @@ func (repo *Repository) CheckHealth(ctx context.Context) (err error) {
 
 // GetComponentVersion retrieves a component version from the repository.
 func (repo *Repository) GetComponentVersion(ctx context.Context, component, version string) (desc *descriptor.Descriptor, err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	done := log.Operation(ctx, "get component version",
 		slog.String("component", component),
@@ -189,6 +199,8 @@ func (repo *Repository) AddLocalResource(
 	resource *descriptor.Resource,
 	b blob.ReadOnlyBlob,
 ) (_ *descriptor.Resource, err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	done := log.Operation(ctx, "add local resource",
 		slog.String("component", component),
@@ -208,6 +220,8 @@ func (repo *Repository) AddLocalResource(
 }
 
 func (repo *Repository) AddLocalSource(ctx context.Context, component, version string, source *descriptor.Source, content blob.ReadOnlyBlob) (newRes *descriptor.Source, err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	done := log.Operation(ctx, "add local source",
 		slog.String("component", component),
@@ -227,6 +241,8 @@ func (repo *Repository) AddLocalSource(ctx context.Context, component, version s
 }
 
 func (repo *Repository) ProcessResourceDigest(ctx context.Context, res *descriptor.Resource) (_ *descriptor.Resource, err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	done := log.Operation(ctx, "process resource digest",
 		log.IdentityLogAttr("resource", res.ToIdentity()))
@@ -338,6 +354,8 @@ func (repo *Repository) uploadAndUpdateLocalArtifact(ctx context.Context, compon
 
 // GetLocalResource retrieves a local resource from the repository.
 func (repo *Repository) GetLocalResource(ctx context.Context, component, version string, identity runtime.Identity) (blob.ReadOnlyBlob, *descriptor.Resource, error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	var err error
 	done := log.Operation(ctx, "get local resource",
@@ -360,6 +378,8 @@ func (repo *Repository) GetLocalResource(ctx context.Context, component, version
 }
 
 func (repo *Repository) GetLocalSource(ctx context.Context, component, version string, identity runtime.Identity) (blob.ReadOnlyBlob, *descriptor.Source, error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	var err error
 	done := log.Operation(ctx, "get local source",
@@ -586,6 +606,8 @@ func (repo *Repository) uploadOCIImage(ctx context.Context, newAccess runtime.Ty
 
 // DownloadResource downloads a [*descriptor.Resource] from the repository.
 func (repo *Repository) DownloadResource(ctx context.Context, res *descriptor.Resource) (data blob.ReadOnlyBlob, err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	done := log.Operation(ctx, "download resource", log.IdentityLogAttr("resource", res.ToIdentity()))
 	defer func() {
@@ -600,6 +622,8 @@ func (repo *Repository) DownloadResource(ctx context.Context, res *descriptor.Re
 
 // DownloadSource downloads a [*descriptor.Source] from the repository.
 func (repo *Repository) DownloadSource(ctx context.Context, src *descriptor.Source) (data blob.ReadOnlyBlob, err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	ctx = slogcontext.NewCtx(ctx, repo.logger)
 	done := log.Operation(ctx, "download source", log.IdentityLogAttr("resource", src.ToIdentity()))
 	defer func() {
@@ -682,6 +706,7 @@ func getDescriptorOCIImageManifest(ctx context.Context, store spec.Store, refere
 	slogcontext.Log(ctx, slog.LevelInfo, "resolving descriptor", slog.String("reference", reference))
 	base, err := store.Resolve(ctx, reference)
 	if err != nil {
+
 		return ociImageSpecV1.Manifest{}, nil, fmt.Errorf("failed to resolve reference %q: %w", reference, err)
 	}
 	slogcontext.Log(ctx, slog.LevelInfo, "fetching descriptor", log.DescriptorLogAttr(base))

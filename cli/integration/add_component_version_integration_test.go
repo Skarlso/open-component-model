@@ -1,11 +1,13 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -21,13 +23,8 @@ func Test_Integration_AddComponentVersion_OCIRepository(t *testing.T) {
 
 	t.Logf("Starting OCI repository add component-version integration test")
 	user := "ocm"
-
-	// Setup credentials and htpasswd
-	password := internal.GenerateRandomPassword(t, 20)
-	htpasswd := internal.GenerateHtpasswd(t, user, password)
-
 	// Start containerized registry
-	registryAddress := internal.StartDockerContainerRegistry(t, htpasswd)
+	registryAddress, password := internal.StartDockerContainerRegistry(t, 20)
 	host, port, err := net.SplitHostPort(registryAddress)
 	r.NoError(err)
 
@@ -47,9 +44,10 @@ configurations:
         username: %[3]q
         password: %[4]q
 `, host, port, user, password)
-	cfgPath := filepath.Join(t.TempDir(), "ocmconfig.yaml")
+	// Use more unique config filename to avoid conflicts in parallel tests
+	cfgPath := filepath.Join(t.TempDir(), fmt.Sprintf("ocmconfig-%d.yaml", time.Now().UnixNano()))
 	r.NoError(os.WriteFile(cfgPath, []byte(cfg), os.ModePerm))
-	
+
 	t.Logf("Generated config:\n%s", cfg)
 
 	client := internal.CreateAuthClient(registryAddress, user, password)
@@ -67,9 +65,10 @@ configurations:
 	t.Run("add component-version with plain OCI registry reference", func(t *testing.T) {
 		r := require.New(t)
 
-		componentName := "ocm.software/test-component"
+		// Use unique component names to avoid conflicts in parallel tests
+		componentName := fmt.Sprintf("ocm.software/test-add-component-%d", time.Now().UnixNano())
 		componentVersion := "v1.0.0"
-		
+
 		// Create constructor file
 		constructorContent := fmt.Sprintf(`
 components:
@@ -85,12 +84,14 @@ components:
       type: utf8
       text: "Hello, World from OCI registry!"
 `, componentName, componentVersion)
-		
+
 		constructorPath := filepath.Join(t.TempDir(), "constructor.yaml")
 		r.NoError(os.WriteFile(constructorPath, []byte(constructorContent), os.ModePerm))
 
 		// Test the add component-version command with plain OCI registry reference
 		addCMD := cmd.New()
+		fmt.Println("adding to ", registryAddress)
+		fmt.Println("with config ", cfgPath)
 		addCMD.SetArgs([]string{
 			"add",
 			"component-version",
@@ -99,7 +100,9 @@ components:
 			"--config", cfgPath,
 		})
 
-		r.NoError(addCMD.ExecuteContext(t.Context()), "add component-version should succeed with OCI registry")
+		// Use a fresh context to avoid sharing credentials between parallel tests
+		ctx := context.Background()
+		r.NoError(addCMD.ExecuteContext(ctx), "add component-version should succeed with OCI registry")
 
 		// Verify the component version was added by attempting to retrieve it
 		desc, err := repo.GetComponentVersion(t.Context(), componentName, componentVersion)
@@ -115,9 +118,10 @@ components:
 	t.Run("add component-version with explicit OCI type prefix", func(t *testing.T) {
 		r := require.New(t)
 
-		componentName := "ocm.software/explicit-oci-component"
+		// Use unique component names to avoid conflicts in parallel tests
+		componentName := fmt.Sprintf("ocm.software/explicit-add-oci-component-%d", time.Now().UnixNano())
 		componentVersion := "v2.0.0"
-		
+
 		// Create constructor file
 		constructorContent := fmt.Sprintf(`
 components:
@@ -133,7 +137,7 @@ components:
       type: utf8
       text: "Hello from explicit OCI type!"
 `, componentName, componentVersion)
-		
+
 		constructorPath := filepath.Join(t.TempDir(), "constructor.yaml")
 		r.NoError(os.WriteFile(constructorPath, []byte(constructorContent), os.ModePerm))
 
@@ -147,7 +151,9 @@ components:
 			"--config", cfgPath,
 		})
 
-		r.NoError(addCMD.ExecuteContext(t.Context()), "add component-version should succeed with explicit OCI type")
+		// Use a fresh context to avoid sharing credentials between parallel tests
+		ctx := context.Background()
+		r.NoError(addCMD.ExecuteContext(ctx), "add component-version should succeed with explicit OCI type")
 
 		// Verify the component version was added
 		desc, err := repo.GetComponentVersion(t.Context(), componentName, componentVersion)
@@ -159,9 +165,10 @@ components:
 	t.Run("add component-version with HTTPS URL format", func(t *testing.T) {
 		r := require.New(t)
 
-		componentName := "ocm.software/https-component"
+		// Use unique component names to avoid conflicts in parallel tests
+		componentName := fmt.Sprintf("ocm.software/https-add-component-%d", time.Now().UnixNano())
 		componentVersion := "v3.0.0"
-		
+
 		// Create constructor file
 		constructorContent := fmt.Sprintf(`
 components:
@@ -177,7 +184,7 @@ components:
       type: utf8
       text: "Hello from HTTPS URL format!"
 `, componentName, componentVersion)
-		
+
 		constructorPath := filepath.Join(t.TempDir(), "constructor.yaml")
 		r.NoError(os.WriteFile(constructorPath, []byte(constructorContent), os.ModePerm))
 
@@ -190,8 +197,9 @@ components:
 			"--constructor", constructorPath,
 			"--config", cfgPath,
 		})
-
-		r.NoError(addCMD.ExecuteContext(t.Context()), "add component-version should succeed with HTTPS URL format")
+		// Use a fresh context to avoid sharing credentials between parallel tests
+		ctx := context.Background()
+		r.NoError(addCMD.ExecuteContext(ctx), "add component-version should succeed with HTTPS URL format")
 
 		// Verify the component version was added
 		desc, err := repo.GetComponentVersion(t.Context(), componentName, componentVersion)
@@ -207,9 +215,10 @@ func Test_Integration_AddComponentVersion_CTFRepository(t *testing.T) {
 	t.Run("add component-version with CTF archive path", func(t *testing.T) {
 		r := require.New(t)
 
-		componentName := "ocm.software/ctf-component"
+		// Use unique component names to avoid conflicts in parallel tests
+		componentName := fmt.Sprintf("ocm.software/ctf-component-%d", time.Now().UnixNano())
 		componentVersion := "v1.0.0"
-		
+
 		// Create constructor file
 		constructorContent := fmt.Sprintf(`
 components:
@@ -225,7 +234,7 @@ components:
       type: utf8
       text: "Hello from CTF archive!"
 `, componentName, componentVersion)
-		
+
 		constructorPath := filepath.Join(t.TempDir(), "constructor.yaml")
 		r.NoError(os.WriteFile(constructorPath, []byte(constructorContent), os.ModePerm))
 
@@ -239,7 +248,9 @@ components:
 			"--constructor", constructorPath,
 		})
 
-		r.NoError(addCMD.ExecuteContext(t.Context()), "add component-version should succeed with CTF archive")
+		// Use a fresh context to avoid sharing credentials between parallel tests
+		ctx := context.Background()
+		r.NoError(addCMD.ExecuteContext(ctx), "add component-version should succeed with CTF archive")
 
 		// Verify the archive was created
 		_, err := os.Stat(ctfArchivePath)
@@ -249,9 +260,10 @@ components:
 	t.Run("add component-version with explicit CTF type prefix", func(t *testing.T) {
 		r := require.New(t)
 
-		componentName := "ocm.software/explicit-ctf-component"
+		// Use unique component names to avoid conflicts in parallel tests
+		componentName := fmt.Sprintf("ocm.software/explicit-ctf-component-%d", time.Now().UnixNano())
 		componentVersion := "v2.0.0"
-		
+
 		// Create constructor file
 		constructorContent := fmt.Sprintf(`
 components:
@@ -267,7 +279,7 @@ components:
       type: utf8
       text: "Hello from explicit CTF type!"
 `, componentName, componentVersion)
-		
+
 		constructorPath := filepath.Join(t.TempDir(), "constructor.yaml")
 		r.NoError(os.WriteFile(constructorPath, []byte(constructorContent), os.ModePerm))
 
@@ -281,7 +293,9 @@ components:
 			"--constructor", constructorPath,
 		})
 
-		r.NoError(addCMD.ExecuteContext(t.Context()), "add component-version should succeed with explicit CTF type")
+		// Use a fresh context to avoid sharing credentials between parallel tests
+		ctx := context.Background()
+		r.NoError(addCMD.ExecuteContext(ctx), "add component-version should succeed with explicit CTF type")
 
 		// Verify the archive was created
 		_, err := os.Stat(ctfArchivePath)

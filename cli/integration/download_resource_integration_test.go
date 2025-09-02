@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,15 +37,10 @@ func Test_Integration_OCIRepository(t *testing.T) {
 	r := require.New(t)
 	t.Parallel()
 
-	t.Logf("Starting OCI based integration test")
 	user := "ocm"
-
-	// Setup credentials and htpasswd
-	password := internal.GenerateRandomPassword(t, 20)
-	htpasswd := internal.GenerateHtpasswd(t, user, password)
-
+	t.Logf("Starting OCI based integration test")
 	// Start containerized registry
-	registryAddress := internal.StartDockerContainerRegistry(t, htpasswd)
+	registryAddress, password := internal.StartDockerContainerRegistry(t, 15)
 	host, port, err := net.SplitHostPort(registryAddress)
 	r.NoError(err)
 
@@ -64,8 +60,10 @@ configurations:
         username: %[3]q
         password: %[4]q
 `, host, port, user, password)
-	cfgPath := filepath.Join(t.TempDir(), "ocmconfig.yaml")
+	// Use more unique config filename to avoid conflicts in parallel tests
+	cfgPath := filepath.Join(t.TempDir(), fmt.Sprintf("ocmconfig-%d.yaml", time.Now().UnixNano()))
 	r.NoError(os.WriteFile(cfgPath, []byte(cfg), os.ModePerm))
+	t.Logf("Generated config through OCI repositories:\n%s\n", cfg)
 
 	client := internal.CreateAuthClient(registryAddress, user, password)
 
@@ -97,7 +95,9 @@ configurations:
 			ReadOnlyBlob: direct.NewFromBytes([]byte("foobar")),
 		}
 
-		name, version := "ocm.software/test-component", "v1.0.0"
+		// Use unique component names to avoid conflicts in parallel tests
+		name := fmt.Sprintf("ocm.software/test-oci-component-%d", time.Now().UnixNano())
+		version := "v1.0.0"
 
 		uploadComponentVersion(t, repo, name, version, localResource)
 
@@ -105,6 +105,8 @@ configurations:
 
 		output := filepath.Join(t.TempDir(), "image-layout")
 
+		fmt.Println("downloading from ", registryAddress)
+		fmt.Println("with config ", cfgPath)
 		downloadCMD.SetArgs([]string{
 			"download",
 			"resource",
@@ -116,6 +118,7 @@ configurations:
 			"--config",
 			cfgPath,
 		})
+
 		r.NoError(downloadCMD.ExecuteContext(t.Context()))
 
 		outputBlob, err := filesystem.GetBlobFromOSPath(output)
@@ -153,7 +156,9 @@ configurations:
 				true),
 		}
 
-		name, version := "ocm.software/test-component", "v1.0.0"
+		// Use unique component names to avoid conflicts in parallel tests
+		name := fmt.Sprintf("ocm.software/test-oci-component-%d", time.Now().UnixNano())
+		version := "v1.0.0"
 
 		uploadComponentVersion(t, repo, name, version, localResource)
 
@@ -174,7 +179,9 @@ configurations:
 				"--extraction-policy",
 				resourceCMD.ExtractionPolicyDisable,
 			})
-			r.NoError(downloadCMD.ExecuteContext(t.Context()))
+			// Use a fresh context to avoid sharing credentials between parallel tests
+			ctx := context.Background()
+			r.NoError(downloadCMD.ExecuteContext(ctx))
 
 			fi, err := os.Stat(output)
 			r.NoError(err)
@@ -196,7 +203,10 @@ configurations:
 				"--config",
 				cfgPath,
 			})
-			r.NoError(downloadCMD.ExecuteContext(t.Context()))
+
+			// Use a fresh context to avoid sharing credentials between parallel tests
+			ctx := context.Background()
+			r.NoError(downloadCMD.ExecuteContext(ctx))
 
 			fi, err := os.Stat(output)
 			r.NoError(err)
@@ -270,7 +280,9 @@ func Test_Integration_HelmTransformer(t *testing.T) {
 			"--plugin-directory",
 			pluginDir,
 		})
-		r.NoError(addCMD.ExecuteContext(t.Context()), "adding the component-version to the repository must succeed")
+		// Use a fresh context to avoid sharing credentials between parallel tests (CTF doesn't need credentials)
+		ctx := context.Background()
+		r.NoError(addCMD.ExecuteContext(ctx), "adding the component-version to the repository must succeed")
 
 		output := filepath.Join(t.TempDir(), "downloaded-transformed-chart")
 		downloadCMD := cmd.New()
@@ -287,7 +299,9 @@ func Test_Integration_HelmTransformer(t *testing.T) {
 			"--plugin-directory",
 			pluginDir,
 		})
-		r.NoError(downloadCMD.ExecuteContext(t.Context()), "downloading and transforming the resource must succeed")
+		// Use a fresh context to avoid sharing credentials between parallel tests (CTF doesn't need credentials)
+		ctx2 := context.Background()
+		r.NoError(downloadCMD.ExecuteContext(ctx2), "downloading and transforming the resource must succeed")
 
 		downloaded, err := os.Stat(output)
 		r.NoError(err, "the output directory must exist")

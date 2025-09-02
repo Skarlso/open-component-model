@@ -122,6 +122,7 @@ func (p *ResourceRepositoryPlugin) DownloadResource(ctx context.Context, resourc
 		if err != nil {
 			return nil, fmt.Errorf("error creating repository: %w", err)
 		}
+		fmt.Println("Repo in Download Resource: ", repo)
 
 		b, err := repo.DownloadResource(ctx, resource)
 		if err != nil {

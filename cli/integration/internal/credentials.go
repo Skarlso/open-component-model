@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -39,6 +41,7 @@ func GenerateRandomPassword(t *testing.T, length int) string {
 }
 
 func CreateAuthClient(address, username, password string) *auth.Client {
+	fmt.Println("Creating auth client for ", address, " with username ", username, " and password ", password, "")
 	url, err := ocmruntime.ParseURLAndAllowNoScheme(address)
 	if err != nil {
 		panic(fmt.Sprintf("invalid address %q: %v", address, err))
@@ -57,8 +60,16 @@ func CreateAuthClient(address, username, password string) *auth.Client {
 
 const distributionRegistryImage = "registry:3.0.0"
 
-func StartDockerContainerRegistry(t *testing.T, htpasswd string) string {
+func StartDockerContainerRegistry(t *testing.T, l int) (string, string) {
 	t.Helper()
+	// Setup credentials and htpasswd
+	password := GenerateRandomPassword(t, l)
+	htpasswd := GenerateHtpasswd(t, "ocm", password)
+
+	// Use test name and timestamp for unique container naming to avoid conflicts in parallel tests
+	testName := strings.ReplaceAll(t.Name(), "/", "-")
+	testName = strings.ReplaceAll(testName, " ", "_")
+	containerName := fmt.Sprintf("ocm-registry-%s-%d", testName, time.Now().UnixNano())
 	// Start containerized registry
 	t.Logf("Launching test registry (%s)...", distributionRegistryImage)
 	registryContainer, err := registry.Run(t.Context(), distributionRegistryImage,
@@ -68,6 +79,7 @@ func StartDockerContainerRegistry(t *testing.T, htpasswd string) string {
 			"REGISTRY_LOG_LEVEL":           "debug",
 		}),
 		testcontainers.WithLogger(log.TestLogger(t)),
+		testcontainers.WithName(containerName),
 	)
 	r := require.New(t)
 	r.NoError(err)
@@ -79,5 +91,5 @@ func StartDockerContainerRegistry(t *testing.T, htpasswd string) string {
 	registryAddress, err := registryContainer.HostAddress(t.Context())
 	r.NoError(err)
 
-	return registryAddress
+	return registryAddress, password
 }

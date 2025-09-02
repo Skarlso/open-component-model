@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/progress"
@@ -279,6 +280,7 @@ func getComponentConstructorFile(cmd *cobra.Command) (*file.Flag, error) {
 var _ constructor.TargetRepositoryProvider = (*constructorProvider)(nil)
 
 type constructorProvider struct {
+	mu             sync.Mutex
 	cache          string
 	targetRepoSpec runtime.Typed
 	pluginManager  *manager.PluginManager
@@ -328,6 +330,8 @@ func (prov *constructorProvider) GetTargetRepository(ctx context.Context, _ *con
 		if creds, err = prov.graph.Resolve(ctx, identity); err != nil {
 			return nil, fmt.Errorf("getting credentials for repository %q failed: %w", prov.targetRepoSpec, err)
 		}
+		fmt.Println("resolved credentials for repository", prov.targetRepoSpec)
+		fmt.Println("creds are", creds)
 	} else {
 		slog.WarnContext(ctx, "could not get credential consumer identity for component version repository", "repository", prov.targetRepoSpec, "error", err)
 	}
