@@ -19,7 +19,7 @@
 //
 // Usage:
 //
-//	go run main.go <root-directory>
+//	go run main.go <root-directory> asdf
 //
 // Example:
 //
