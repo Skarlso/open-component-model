@@ -10,8 +10,6 @@ on:
     tags:
       - 'bindings/go/helm/v*'
   pull_request:
-    branches:
-      - main
     paths:
       - 'bindings/go/helm/**'
       - '.github/workflows/publish-helminput-plugin-component.yaml'
