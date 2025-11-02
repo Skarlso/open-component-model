@@ -31,6 +31,7 @@ require (
 )
 
 require (
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	ocm.software/ocm v0.31.0
 	ocm.software/open-component-model/bindings/go/configuration v0.0.9
 	ocm.software/open-component-model/bindings/go/credentials v0.0.2
@@ -238,7 +239,6 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/vault-client-go v0.4.3 // indirect
 	github.com/in-toto/attestation v1.1.2 // indirect
 	github.com/in-toto/in-toto-golang v0.9.0 // indirect
@@ -428,4 +428,4 @@ replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250910181357-589584f
 // TODO: remove once mandelsoft utils no longer has an unreleased version of vfs as dep
 replace github.com/mandelsoft/vfs => github.com/mandelsoft/vfs v0.4.4
 
-replace github.com/ThalesIgnite/crypto11 => github.com/ThalesGroup/crypto11 v1.4.1
+replace github.com/ThalesIgnite/crypto11 => github.com/ThalesGroup/crypto11 v1.6.0
