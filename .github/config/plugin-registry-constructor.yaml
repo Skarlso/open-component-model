@@ -9,11 +9,7 @@ labels:
     value: official
   - name: description
     value: Official OCM plugin registry
-references:
+componentReferences:
   - name: helminput
     version: ((HELMINPUT_VERSION))
-    component: ocm.software/plugins/helminput
-    digest:
-      hashAlgorithm: ((HELMINPUT_DIGEST_ALGO))
-      normalisationAlgorithm: ((HELMINPUT_DIGEST_NORM))
-      value: ((HELMINPUT_DIGEST_VALUE))
+    componentName: ocm.software/plugins/helminput

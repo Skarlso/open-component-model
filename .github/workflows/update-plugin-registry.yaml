@@ -132,41 +132,6 @@ jobs:
             echo "Registry component not found, will start with v0.0.1"
           fi
 
-      - name: Fetch plugin component digest
-        id: digest
-        env:
-          CLI_IMAGE: ghcr.io/open-component-model/cli:main
-          PLUGIN_COMPONENT: ${{ steps.plugin.outputs.plugin_component }}
-          PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Fetching digest for ${PLUGIN_COMPONENT}:${PLUGIN_VERSION}"
-
-          # Get component descriptor and extract digest
-          DESCRIPTOR=$(docker run --rm \
-            -v "${HOME}/.docker/config.json:/.docker/config.json:ro" \
-            -v "${HOME}/.ocmconfig:/.ocmconfig:ro" \
-            -v /etc/ssl/certs/:/etc/ssl/certs/:ro \
-            "$CLI_IMAGE" \
-              get component \
-              --output json \
-              --config "/.ocmconfig" \
-              "${OCM_REPOSITORY}//${PLUGIN_COMPONENT}:${PLUGIN_VERSION}")
-
-          # Extract digest value (this will need proper JSON parsing)
-          DIGEST_ALGO=$(echo "$DESCRIPTOR" | jq -r '.component.digest.hashAlgorithm')
-          DIGEST_NORM=$(echo "$DESCRIPTOR" | jq -r '.component.digest.normalisationAlgorithm')
-          DIGEST_VALUE=$(echo "$DESCRIPTOR" | jq -r '.component.digest.value')
-
-          echo "digest_algo=${DIGEST_ALGO}" >> "$GITHUB_OUTPUT"
-          echo "digest_norm=${DIGEST_NORM}" >> "$GITHUB_OUTPUT"
-          echo "digest_value=${DIGEST_VALUE}" >> "$GITHUB_OUTPUT"
-
-          echo "✅ Fetched digest: ${DIGEST_ALGO}/${DIGEST_VALUE:0:12}..."
-
       - name: Check if plugin exists in registry
         id: check_plugin
         env:
@@ -230,9 +195,6 @@ jobs:
         env:
           REGISTRY_VERSION: ${{ steps.new_version.outputs.new_version }}
           HELMINPUT_VERSION: ${{ steps.plugin.outputs.plugin_version }}
-          HELMINPUT_DIGEST_ALGO: ${{ steps.digest.outputs.digest_algo }}
-          HELMINPUT_DIGEST_NORM: ${{ steps.digest.outputs.digest_norm }}
-          HELMINPUT_DIGEST_VALUE: ${{ steps.digest.outputs.digest_value }}
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
@@ -250,33 +212,28 @@ jobs:
 
             // Find and update the helminput plugin reference
             const pluginName = 'helminput';
-            let plugin = constructor.references?.find(ref => ref.name === pluginName);
+            let plugin = constructor.componentReferences?.find(ref => ref.name === pluginName);
 
             if (!plugin) {
               // Plugin doesn't exist in template, add it
-              if (!constructor.references) {
-                constructor.references = [];
+              if (!constructor.componentReferences) {
+                constructor.componentReferences = [];
               }
               plugin = {
                 name: pluginName,
-                component: 'ocm.software/plugins/helminput',
-                version: null,
-                digest: {}
+                componentName: 'ocm.software/plugins/helminput',
+                version: null
               };
-              constructor.references.push(plugin);
+              constructor.componentReferences.push(plugin);
               core.info(`Added new plugin reference: ${pluginName}`);
             }
 
             // Set plugin values
             plugin.version = process.env.HELMINPUT_VERSION;
-            plugin.digest.hashAlgorithm = process.env.HELMINPUT_DIGEST_ALGO;
-            plugin.digest.normalisationAlgorithm = process.env.HELMINPUT_DIGEST_NORM;
-            plugin.digest.value = process.env.HELMINPUT_DIGEST_VALUE;
 
             core.info(`Templates substituted`);
             core.info(`Registry version: ${constructor.version}`);
             core.info(`Plugin version: ${plugin.version}`);
-            core.info(`Plugin digest: ${plugin.digest.value.substring(0, 12)}...`);
 
             // Serialize and write
             const rendered = yaml.dump(constructor, { lineWidth: -1 });
