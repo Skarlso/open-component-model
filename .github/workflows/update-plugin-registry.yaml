@@ -194,7 +194,9 @@ jobs:
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
         env:
           REGISTRY_VERSION: ${{ steps.new_version.outputs.new_version }}
-          HELMINPUT_VERSION: ${{ steps.plugin.outputs.plugin_version }}
+          PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
+          PLUGIN_COMPONENT: ${{ steps.plugin.outputs.plugin_component }}
+          PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
@@ -210,8 +212,8 @@ jobs:
             // Set registry version
             constructor.version = process.env.REGISTRY_VERSION;
 
-            // Find and update the helminput plugin reference
-            const pluginName = 'helminput';
+            // Find and update the plugin reference
+            const pluginName = process.env.PLUGIN_NAME;
             let plugin = constructor.componentReferences?.find(ref => ref.name === pluginName);
 
             if (!plugin) {
@@ -221,7 +223,7 @@ jobs:
               }
               plugin = {
                 name: pluginName,
-                componentName: 'ocm.software/plugins/helminput',
+                componentName: process.env.PLUGIN_COMPONENT,
                 version: null
               };
               constructor.componentReferences.push(plugin);
@@ -229,11 +231,11 @@ jobs:
             }
 
             // Set plugin values
-            plugin.version = process.env.HELMINPUT_VERSION;
+            plugin.version = process.env.PLUGIN_VERSION;
 
             core.info(`Templates substituted`);
             core.info(`Registry version: ${constructor.version}`);
-            core.info(`Plugin version: ${plugin.version}`);
+            core.info(`Plugin: ${plugin.name} v${plugin.version}`);
 
             // Serialize and write
             const rendered = yaml.dump(constructor, { lineWidth: -1 });
