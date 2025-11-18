@@ -37,6 +37,18 @@ assert.deepStrictEqual(
 );
 
 assert.deepStrictEqual(
+    parseVersion("v0.1.0"),
+    { major: 0, minor: 1, patch: 0, prerelease: "" },
+    "Should parse zero version"
+);
+
+assert.deepStrictEqual(
+    parseVersion("\"v0.1.0\""),
+    { major: 0, minor: 1, patch: 0, prerelease: "" },
+    "Should parse zero version"
+);
+
+assert.deepStrictEqual(
     parseVersion("v1.2.3-alpha.1+build.123"),
     { major: 1, minor: 2, patch: 3, prerelease: "alpha.1+build.123" },
     "Should parse version with build metadata"

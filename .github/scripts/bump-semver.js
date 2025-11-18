@@ -21,7 +21,7 @@ export function parseVersion(version) {
     }
 
     // Remove leading 'v' if present
-    const cleanVersion = version.replace(/^v/, '');
+    const cleanVersion = version.replace(/["']/g, '').replace(/^v/, '').trim();
 
     // Match semver pattern: major.minor.patch[-prerelease]
     const match = cleanVersion.match(/^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/);
