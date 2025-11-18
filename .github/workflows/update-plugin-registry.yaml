@@ -157,7 +157,7 @@ jobs:
             -v "${HOME}/.ocmconfig:/.ocmconfig:ro" \
             -v /etc/ssl/certs/:/etc/ssl/certs/:ro \
             "$CLI_IMAGE" \
-              get cv ${OCM_REPOSITORY}/plugins//${REGISTRY_COMPONENT} -ojson --loglevel=error --latest --config /.ocmconfig | jq '.[0].component.version' && [ -n "$CURRENT_VERSION" ]; then
+              get cv ${OCM_REPOSITORY}/plugins//${REGISTRY_COMPONENT} -ojson --loglevel=error --latest --config /.ocmconfig | jq '.[0].component.references[] | select(.name == \"${PLUGIN_NAME}\")' | grep -q "name:"; then
             echo "plugin_exists=true" >> "$GITHUB_OUTPUT"
             echo "Plugin ${PLUGIN_NAME} exists in registry"
           else
