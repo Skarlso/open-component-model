@@ -9,4 +9,4 @@ labels:
     value: official
   - name: description
     value: Official OCM plugin registry
-componentReferences: {}
+componentReferences: []
