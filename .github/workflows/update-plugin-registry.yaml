@@ -202,25 +202,17 @@ jobs:
           script: |
             const fs = require('fs');
             const yaml = require('js-yaml');
-
             const constructorPath = process.env.REGISTRY_CONSTRUCTOR;
-
-            // Read and parse template
             const template = fs.readFileSync(constructorPath, 'utf8');
             const constructor = yaml.load(template);
-
-            // Set registry version
-            constructor.version = process.env.REGISTRY_VERSION;
-
-            // Find and update the plugin reference
             const pluginName = process.env.PLUGIN_NAME;
-            let plugin = constructor.componentReferences?.find(ref => ref.name === pluginName);
+            constructor.version = process.env.REGISTRY_VERSION;
+            if (!constructor.componentReferences) {
+              constructor.componentReferences = [];
+            }
 
+            let plugin = constructor.componentReferences?.find(ref => ref.name === pluginName);
             if (!plugin) {
-              // Plugin doesn't exist in template, add it
-              if (!constructor.componentReferences) {
-                constructor.componentReferences = [];
-              }
               plugin = {
                 name: pluginName,
                 componentName: process.env.PLUGIN_COMPONENT,
@@ -230,17 +222,14 @@ jobs:
               core.info(`Added new plugin reference: ${pluginName}`);
             }
 
-            // Set plugin values
             plugin.version = process.env.PLUGIN_VERSION;
 
             core.info(`Templates substituted`);
             core.info(`Registry version: ${constructor.version}`);
             core.info(`Plugin: ${plugin.name} v${plugin.version}`);
-
-            // Serialize and write
+            
             const rendered = yaml.dump(constructor, { lineWidth: -1 });
             fs.writeFileSync(constructorPath, rendered, 'utf8');
-
             core.info(`Constructor rendered to: ${constructorPath}`);
 
       - name: Publish registry component
