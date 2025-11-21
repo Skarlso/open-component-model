@@ -179,7 +179,7 @@ jobs:
       - name: Publish OCM Component Version
         env:
           VERSION: ${{ needs.build.outputs.version }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
+          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
           CLI_IMAGE: ghcr.io/open-component-model/cli:main
           WORKDIR: ${{ github.workspace }}/bindings/go/helm/tmp
         shell: bash
@@ -203,7 +203,7 @@ jobs:
       - name: Verify uploaded plugin.
         env:
           VERSION: ${{ needs.build.outputs.version }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
+          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
           CLI_IMAGE: ghcr.io/open-component-model/cli:main
           WORKDIR: ${{ github.workspace }}/bindings/go/helm/tmp
         shell: bash
@@ -238,7 +238,7 @@ jobs:
       - name: Summary
         env:
           VERSION: ${{ needs.build.outputs.version }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
+          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
         shell: bash
         run: |
           echo "## Published Helm input plugin component version" >> "$GITHUB_STEP_SUMMARY"
