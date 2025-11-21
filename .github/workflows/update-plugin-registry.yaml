@@ -104,11 +104,11 @@ jobs:
         run: |
           echo "REPOSITORY_OWNER=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
-      - name: Fetch current registry version
+      - name: Fetch current registry version and descriptor
         id: registry_version
         env:
           CLI_IMAGE: ghcr.io/open-component-model/cli:main
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
+          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
           REGISTRY_COMPONENT: ocm.software/plugin-registry
         shell: bash
         run: |
@@ -117,49 +117,53 @@ jobs:
           echo "Checking for existing registry component..."
 
           # Try to fetch the latest version of the registry component
-          if CURRENT_VERSION=$(docker run --rm \
+          if REGISTRY_DATA=$(docker run --rm \
             -v "${HOME}/.docker/config.json:/.docker/config.json:ro" \
             -v "${HOME}/.ocmconfig:/.ocmconfig:ro" \
             -v /etc/ssl/certs/:/etc/ssl/certs/:ro \
             "$CLI_IMAGE" \
-              get cv ${OCM_REPOSITORY}/plugins//${REGISTRY_COMPONENT} -ojson --loglevel=error --latest --config /.ocmconfig | jq '.[0].component.version' 2>/dev/null) && [ -n "$CURRENT_VERSION" ]; then
+              get cv ${OCM_REPOSITORY}//${REGISTRY_COMPONENT} -ojson --loglevel=error --latest --config /.ocmconfig 2>/dev/null) && [ -n "$REGISTRY_DATA" ]; then
 
+            CURRENT_VERSION=$(echo "$REGISTRY_DATA" | jq -r '.[0].component.version')
+            echo "registry_exists=true" >> "$GITHUB_OUTPUT"
             echo "current_version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
+
+            # Save the full descriptor to a file for later use
+            echo "$REGISTRY_DATA" | jq '.[0].component' > /tmp/registry-descriptor.json
             echo "Found existing registry at version ${CURRENT_VERSION}"
           else
-            # Registry doesn't exist, start with v0.0.1
+            echo "registry_exists=false" >> "$GITHUB_OUTPUT"
             echo "current_version=v0.0.1" >> "$GITHUB_OUTPUT"
-            echo "Registry component not found, will start with v0.0.1"
+            echo "Registry component not found, will create new registry at v0.1.0"
           fi
 
-      - name: Check if plugin exists in registry
+      - name: Check plugin and detect version conflicts
         id: check_plugin
         env:
-          CLI_IMAGE: ghcr.io/open-component-model/cli:main
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
-          REGISTRY_COMPONENT: ocm.software/plugin-registry
           PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
-          CURRENT_VERSION: ${{ steps.registry_version.outputs.current_version }}
+          PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
+          REGISTRY_EXISTS: ${{ steps.registry_version.outputs.registry_exists }}
         shell: bash
         run: |
           set -euo pipefail
 
-          # If registry doesn't exist yet, plugin can't exist
-          if [ "$CURRENT_VERSION" = "v0.0.1" ]; then
+          if [ "$REGISTRY_EXISTS" != "true" ]; then
             echo "plugin_exists=false" >> "$GITHUB_OUTPUT"
             echo "Registry doesn't exist, plugin will be new"
             exit 0
           fi
 
-          # Fetch the current registry component and check for plugin
-          if docker run --rm \
-            -v "${HOME}/.docker/config.json:/.docker/config.json:ro" \
-            -v "${HOME}/.ocmconfig:/.ocmconfig:ro" \
-            -v /etc/ssl/certs/:/etc/ssl/certs/:ro \
-            "$CLI_IMAGE" \
-              get cv ${OCM_REPOSITORY}//${REGISTRY_COMPONENT} -ojson --loglevel=error --config /.ocmconfig | jq '.[0].component.componentReferences[] | select(.name == "${PLUGIN_NAME}") | .name'; then
+          # Check if plugin exists and get its current version
+          if CURRENT_PLUGIN_VERSION=$(jq -r ".componentReferences[] | select(.name == \"${PLUGIN_NAME}\") | .version" /tmp/registry-descriptor.json 2>/dev/null) && [ -n "$CURRENT_PLUGIN_VERSION" ]; then
             echo "plugin_exists=true" >> "$GITHUB_OUTPUT"
-            echo "Plugin ${PLUGIN_NAME} exists in registry"
+            echo "current_plugin_version=${CURRENT_PLUGIN_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "Plugin ${PLUGIN_NAME} exists in registry at version ${CURRENT_PLUGIN_VERSION}"
+
+            # Check for version conflict
+            if [ "$CURRENT_PLUGIN_VERSION" = "$PLUGIN_VERSION" ]; then
+              echo "::error::Version conflict: Plugin ${PLUGIN_NAME} version ${PLUGIN_VERSION} already exists in the registry"
+              exit 1
+            fi
           else
             echo "plugin_exists=false" >> "$GITHUB_OUTPUT"
             echo "Plugin ${PLUGIN_NAME} not found in registry"
@@ -190,27 +194,50 @@ jobs:
             core.setOutput('new_version', newVersion);
             core.setOutput('update_type', updateType);
 
-      - name: Substitute templates in constructor
+      - name: Prepare registry constructor
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
         env:
           REGISTRY_VERSION: ${{ steps.new_version.outputs.new_version }}
           PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
           PLUGIN_COMPONENT: ${{ steps.plugin.outputs.plugin_component }}
           PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
+          REGISTRY_EXISTS: ${{ steps.registry_version.outputs.registry_exists }}
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const fs = require('fs');
             const yaml = require('js-yaml');
             const constructorPath = process.env.REGISTRY_CONSTRUCTOR;
-            const template = fs.readFileSync(constructorPath, 'utf8');
-            const constructor = yaml.load(template);
+            const registryExists = process.env.REGISTRY_EXISTS === 'true';
             const pluginName = process.env.PLUGIN_NAME;
-            constructor.version = process.env.REGISTRY_VERSION;
-            if (!constructor.componentReferences) {
-              constructor.componentReferences = [];
+
+            let constructor;
+
+            if (registryExists) {
+              // Use existing registry descriptor
+              core.info('Using existing registry descriptor');
+              const descriptor = JSON.parse(fs.readFileSync('/tmp/registry-descriptor.json', 'utf8'));
+
+              // Convert descriptor to constructor format
+              constructor = {
+                name: descriptor.name,
+                version: process.env.REGISTRY_VERSION,
+                provider: descriptor.provider,
+                labels: descriptor.labels || [],
+                componentReferences: descriptor.componentReferences || []
+              };
+            } else {
+              // Use template for new registry
+              core.info('Using template for new registry');
+              const template = fs.readFileSync(constructorPath, 'utf8');
+              constructor = yaml.load(template);
+              constructor.version = process.env.REGISTRY_VERSION;
+              if (!constructor.componentReferences) {
+                constructor.componentReferences = [];
+              }
             }
 
+            // Update or add the plugin reference
             let plugin = constructor.componentReferences?.find(ref => ref.name === pluginName);
             if (!plugin) {
               plugin = {
@@ -220,14 +247,15 @@ jobs:
               };
               constructor.componentReferences.push(plugin);
               core.info(`Added new plugin reference: ${pluginName}`);
+            } else {
+              core.info(`Updating existing plugin reference: ${pluginName}`);
             }
 
             plugin.version = process.env.PLUGIN_VERSION;
 
-            core.info(`Templates substituted`);
             core.info(`Registry version: ${constructor.version}`);
             core.info(`Plugin: ${plugin.name} v${plugin.version}`);
-            
+
             const rendered = yaml.dump(constructor, { lineWidth: -1 });
             fs.writeFileSync(constructorPath, rendered, 'utf8');
             core.info(`Constructor rendered to: ${constructorPath}`);
@@ -236,7 +264,7 @@ jobs:
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
         env:
           NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
+          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
           CLI_IMAGE: ghcr.io/open-component-model/cli:main
           WORKDIR: ${{ github.workspace }}/.github/config
         shell: bash
@@ -255,14 +283,14 @@ jobs:
               add component-version \
               --component-version-conflict-policy replace \
               --config "/.ocmconfig" \
-              --repository "${OCM_REPOSITORY}/plugins" \
+              --repository "${OCM_REPOSITORY}" \
               --constructor "./plugin-registry-constructor.yaml"
 
       - name: Verify published registry
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
         env:
           NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
+          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
           CLI_IMAGE: ghcr.io/open-component-model/cli:main
         shell: bash
         run: |
@@ -275,7 +303,7 @@ jobs:
             "$CLI_IMAGE" \
               get component \
               --config "/.ocmconfig" \
-              "${OCM_REPOSITORY}/plugins//ocm.software/plugin-registry:${NEW_VERSION}"
+              "${OCM_REPOSITORY}//ocm.software/plugin-registry:${NEW_VERSION}"
 
       - name: Summary
         env:
@@ -284,14 +312,14 @@ jobs:
           PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
           PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
           PLUGIN_COMPONENT: ${{ steps.plugin.outputs.plugin_component }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
+          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
           DRY_RUN: ${{ inputs.dry_run }}
         shell: bash
         run: |
           echo "## Plugin Registry Update" >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$DRY_RUN" = "true" ]; then
-            echo "**🔍 DRY RUN - No changes published**" >> "$GITHUB_STEP_SUMMARY"
+            echo "**DRY RUN - No changes published**" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -308,5 +336,5 @@ jobs:
 
           if [ "$DRY_RUN" != "true" ]; then
             echo "### Published Location" >> "$GITHUB_STEP_SUMMARY"
-            echo "\`${OCM_REPOSITORY}/plugins//ocm.software/plugin-registry:${NEW_VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`${OCM_REPOSITORY}//ocm.software/plugin-registry:${NEW_VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
           fi
