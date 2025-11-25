@@ -42,8 +42,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          sparse-checkout: |
+            ./github/config
+            ./github/scripts
 
       - name: Extract plugin details
         id: plugin
@@ -164,10 +166,6 @@ jobs:
           set -euo pipefail
 
           echo "Publishing registry component version ${NEW_VERSION}"
-          
-          echo "New component constructor"
-          ls -l
-          cat $WORKDIR/plugin-registry-constructor.yaml
 
           docker run --rm \
             -v "${HOME}/.docker/config.json:/.docker/config.json:ro" \
@@ -180,7 +178,7 @@ jobs:
               --component-version-conflict-policy replace \
               --config "/.ocmconfig" \
               --repository "${OCM_REPOSITORY}" \
-              --constructor "$WORKDIR/plugin-registry-constructor.yaml"
+              --constructor "./plugin-registry-constructor.yaml"
 
       - name: Verify published registry
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
