@@ -1,7 +1,5 @@
 // @ts-check
 import { execSync } from "child_process";
-import { parseVersionArray } from './semver-utils.js';
-
 
 // --------------------------
 // GitHub Actions entrypoint
@@ -96,7 +94,7 @@ export function parseBranch(branch) {
  *   rcVersion: The computed RC tag (e.g., "0.1.1-rc.3").
  */
 export function computeNextVersions(basePrefix, latestStableTag, latestRcTag, bumpMinorVersion) {
-    const parseTag = tag => parseVersionArray(tag).join(".");
+    const parseTag = tag => parseVersion(tag).join(".");
     const extractRcNumber = tag => parseInt(tag?.match(/-rc\.(\d+)/)?.[1] ?? "0", 10);
     const incrementVersion = ([maj, min, pat]) => {
         if (bumpMinorVersion) {
@@ -106,8 +104,8 @@ export function computeNextVersions(basePrefix, latestStableTag, latestRcTag, bu
         return [maj, min, pat + 1];
     };
 
-    const stableVersionParts = parseVersionArray(latestStableTag);
-    const rcVersionParts = parseVersionArray(latestRcTag);
+    const stableVersionParts = parseVersion(latestStableTag);
+    const rcVersionParts = parseVersion(latestRcTag);
 
     let [major, minor, patch] =
         stableVersionParts.length > 0
@@ -168,8 +166,8 @@ export function isStableNewer(stable, rc) {
     if (!stable) return false;
     if (!rc) return true;
 
-    const stableParts = parseVersionArray(stable);
-    const rcParts = parseVersionArray(rc);
+    const stableParts = parseVersion(stable);
+    const rcParts = parseVersion(rc);
 
     // Compare [major, minor, patch] lexicographically
     for (let i = 0; i < 3; i++) {
@@ -181,4 +179,17 @@ export function isStableNewer(stable, rc) {
 
     // Same base version → stable is not newer than RC
     return false;
+}
+
+/**
+ * Parse a version tag into an array of version components.
+ * Useful for version comparison and manipulation.
+ *
+ * @param {string} tag - Version tag (e.g., "cli/v0.1.2" or "cli/v0.1.2-rc.3")
+ * @returns {number[]} Array of [major, minor, patch]
+ */
+export function parseVersion(tag) {
+    if (!tag) return [];
+    const version = tag.replace(/^.*v/, "").replace(/-rc\.\d+$/, "");
+    return version.split(".").map(Number);
 }

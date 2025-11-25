@@ -1,9 +1,5 @@
 import assert from "assert";
-import { parseVersionArray } from "./semver-utils.js";
-import { computeNextVersions, isStableNewer, parseBranch } from "./compute-rc-version.js";
-
-// Alias for backward compatibility with tests
-const parseVersion = parseVersionArray;
+import { computeNextVersions, isStableNewer, parseBranch, parseVersion } from "./compute-rc-version.js";
 
 // ----------------------------------------------------------
 // parseVersion tests

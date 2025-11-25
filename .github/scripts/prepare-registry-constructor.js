@@ -1,44 +1,15 @@
 // @ts-check
 import fs from 'fs';
 import yaml from 'js-yaml';
+import {computeNextVersions} from "./compute-rc-version.js";
 
 /**
  * Prepare OCM plugin registry constructor file.
- * Handles loading existing registry, deduplicating plugins, and adding new plugin versions.
  */
 
 /**
- * Deduplicate component references by plugin name.
- * When multiple references with the same name exist, keeps only the last occurrence.
- *
- * @param {Array<{name: string, componentName: string, version: string}>} refs - Component references
- * @returns {Array<{name: string, componentName: string, version: string}>} Deduplicated references
- */
-export function deduplicateReferences(refs) {
-    const refMap = new Map();
-    for (const ref of refs) {
-        refMap.set(ref.name, ref);
-    }
-    return Array.from(refMap.values());
-}
-
-/**
- * Update plugin reference in the component references list.
- * Removes any existing reference with the same name and adds the new one.
- *
- * @param {Array<{name: string, componentName: string, version: string}>} refs - Component references
- * @param {{name: string, componentName: string, version: string}} plugin - Plugin to add/update
- * @returns {Array<{name: string, componentName: string, version: string}>} Updated references
- */
-export function updatePluginReference(refs, plugin) {
-    // Remove existing entry for this plugin
-    const filtered = refs.filter(ref => ref.name !== plugin.name);
-    // Add the new version
-    return [...filtered, plugin];
-}
-
-/**
- * Prepare registry constructor with updated plugin reference.
+ * Prepare registry constructor with updated plugin reference and calculated new version based on whether the plugin
+ * exists or not in the registry. If the plugin exists, we bump as a patch version if it doesn't we increase the minor version.
  *
  * @param {Object} options - Configuration options
  * @param {string} options.constructorPath - Path to constructor template file
@@ -48,7 +19,7 @@ export function updatePluginReference(refs, plugin) {
  * @param {string} options.pluginVersion - Plugin version
  * @param {boolean} options.registryExists - Whether registry already exists
  * @param {string} [options.descriptorPath] - Path to existing registry descriptor (required if registryExists is true)
- * @returns {{constructor: object, stats: {totalRefs: number, deduplicatedRefs: number, isNewRegistry: boolean}}}
+ * @returns {Object} constructor - The constructor object that is created from the template.
  */
 export function prepareRegistryConstructor(options) {
     const {
@@ -61,65 +32,41 @@ export function prepareRegistryConstructor(options) {
         descriptorPath
     } = options;
 
-    // Load constructor template
     const template = fs.readFileSync(constructorPath, 'utf8');
     const constructor = yaml.load(template);
     constructor.version = registryVersion;
 
-    let totalRefs = 0;
-    let deduplicatedRefs = 0;
-
     if (registryExists) {
-        if (!descriptorPath) {
-            throw new Error('descriptorPath is required when registryExists is true');
+        const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
+        constructor.componentReferences = descriptor.componentReferences || [];
+
+        if (constructor.componentReferences.find(r => {
+            return r.name === pluginName && r.version === pluginVersion;
+        })) {
+            throw new Error(`Plugin with name ${pluginName} and version ${pluginVersion} already exists in reference list`);
         }
 
-        // Load existing componentReferences from descriptor
-        const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
-        const existingRefs = descriptor.componentReferences || [];
-        totalRefs = existingRefs.length;
+        // Compute the new version. If the plugin does not exist we increase the minor version.
+        const pluginExists = constructor.componentReferences.find(r => r.name === pluginName);
+        const nextVersion = computeNextVersions(registryVersion, registryVersion, "", pluginExists);
+        constructor.version = nextVersion.baseVersion;
 
-        // Deduplicate by plugin name
-        constructor.componentReferences = deduplicateReferences(existingRefs);
-        deduplicatedRefs = constructor.componentReferences.length;
     } else {
-        // New registry
         if (!constructor.componentReferences) {
             constructor.componentReferences = [];
         }
-        deduplicatedRefs = 0;
+
+        constructor.version = "v0.0.1"
     }
 
-    // Update plugin reference
     const plugin = {
         name: pluginName,
         componentName: pluginComponent,
         version: pluginVersion
     };
-    constructor.componentReferences = updatePluginReference(
-        constructor.componentReferences,
-        plugin
-    );
+    constructor.componentReferences.push(plugin)
 
-    return {
-        constructor,
-        stats: {
-            totalRefs,
-            deduplicatedRefs,
-            isNewRegistry: !registryExists
-        }
-    };
-}
-
-/**
- * Write constructor to YAML file.
- *
- * @param {object} constructor - Constructor object
- * @param {string} outputPath - Output file path
- */
-export function writeConstructor(constructor, outputPath) {
-    const rendered = yaml.dump(constructor, { lineWidth: -1 });
-    fs.writeFileSync(outputPath, rendered, 'utf8');
+    return {constructor}
 }
 
 /**
@@ -163,7 +110,7 @@ export default async function prepareRegistryConstructorAction({ core }) {
     try {
         core.info(`Preparing registry constructor for ${pluginName} v${pluginVersion}`);
 
-        const { constructor, stats } = prepareRegistryConstructor({
+        const constructor = prepareRegistryConstructor({
             constructorPath,
             registryVersion,
             pluginName,
@@ -173,21 +120,15 @@ export default async function prepareRegistryConstructorAction({ core }) {
             descriptorPath
         });
 
-        // Write constructor
-        writeConstructor(constructor, constructorPath);
+        const rendered = yaml.dump(constructor, { lineWidth: -1 });
+        fs.writeFileSync(constructorPath, rendered, 'utf8');
 
-        // Output stats
-        if (stats.isNewRegistry) {
-            core.info('Creating new registry');
-        } else {
-            core.info(`Loaded ${stats.totalRefs} references, deduplicated to ${stats.deduplicatedRefs}`);
-        }
         core.info(`Added plugin reference: ${pluginName} v${pluginVersion}`);
         core.info(`Registry version: ${registryVersion}`);
         core.info(`Constructor written to: ${constructorPath}`);
 
         await core.summary
-            .addHeading('📦 Registry Constructor Prepared')
+            .addHeading('Registry Constructor Prepared')
             .addTable([
                 [
                     { data: 'Field', header: true },
@@ -196,9 +137,6 @@ export default async function prepareRegistryConstructorAction({ core }) {
                 ['Registry Version', registryVersion],
                 ['Plugin Name', pluginName],
                 ['Plugin Version', pluginVersion],
-                ['New Registry', stats.isNewRegistry ? 'Yes' : 'No'],
-                ['Total References', stats.isNewRegistry ? '0' : stats.totalRefs.toString()],
-                ['After Deduplication', constructor.componentReferences.length.toString()],
             ])
             .write();
     } catch (error) {
