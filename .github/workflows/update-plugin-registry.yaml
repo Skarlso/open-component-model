@@ -175,7 +175,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
-            const { computeNextVersions } = await import('${{ github.workspace }}/.github/scripts/computer-rc-version.js');
+            const { computeNextVersions } = await import('${{ github.workspace }}/.github/scripts/compute-rc-version.js');
 
             const currentVersion = process.env.CURRENT_VERSION;
             const pluginExists = process.env.PLUGIN_EXISTS === 'true';
