@@ -153,6 +153,9 @@ jobs:
           script: |
             const script = await import('${{ github.workspace }}/.github/scripts/prepare-registry-constructor.js');
             await script.default({ core });
+            let content = fs.readFileSync('${{ env.REGISTRY_CONSTRUCTOR }}', 'utf8');
+            console.log('Updated registry constructor:');
+            console.log(content);
 
       - name: Publish registry component
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
