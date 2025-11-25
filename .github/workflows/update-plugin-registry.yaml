@@ -224,7 +224,16 @@ jobs:
               // Load existing componentReferences from descriptor
               core.info('Loading componentReferences from existing registry descriptor');
               const descriptor = JSON.parse(fs.readFileSync('/tmp/registry-descriptor.json', 'utf8'));
-              constructor.componentReferences = descriptor.componentReferences || [];
+              const existingRefs = descriptor.componentReferences || [];
+
+              // Deduplicate by plugin name, keeping only the last occurrence of each
+              const refMap = new Map();
+              for (const ref of existingRefs) {
+                refMap.set(ref.name, ref);
+              }
+              constructor.componentReferences = Array.from(refMap.values());
+
+              core.info(`Loaded ${existingRefs.length} references, deduplicated to ${constructor.componentReferences.length}`);
             } else {
               // New registry, ensure componentReferences array exists
               core.info('Creating new registry');
@@ -233,15 +242,19 @@ jobs:
               }
             }
 
-            // add the new plugin version to the references
-            // because if the version already exists we errored in an earlier step.
-            plugin = {
+            // Remove existing plugin entry for the one being updated
+            constructor.componentReferences = constructor.componentReferences.filter(
+              ref => ref.name !== pluginName
+            );
+
+            // Add the new plugin version to the references
+            const plugin = {
               name: pluginName,
               componentName: process.env.PLUGIN_COMPONENT,
               version: process.env.PLUGIN_VERSION
             };
             constructor.componentReferences.push(plugin);
-            core.info(`Added new plugin reference: ${pluginName}`);
+            core.info(`Added plugin reference: ${pluginName} v${plugin.version}`);
 
             core.info(`Registry version: ${constructor.version}`);
             core.info(`Plugin: ${plugin.name} v${plugin.version}`);
