@@ -185,12 +185,11 @@ jobs:
             const newVersion = computeNextVersions(currentVersion, currentVersion, "", !pluginExists);
 
             core.info(`Current version: ${currentVersion}`);
-            core.info(`Update type: ${updateType} (${pluginExists ? 'updating existing plugin' : 'adding new plugin'})`);
+            core.info(`Update type: (${pluginExists ? 'updating existing plugin' : 'adding new plugin'})`);
             core.info(`New version: ${newVersion.baseVersion}`);
 
             core.setOutput('old_version', currentVersion);
             core.setOutput('new_version', newVersion.baseVersion);
-            core.setOutput('update_type', updateType);
 
       - name: Prepare registry constructor
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
