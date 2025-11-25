@@ -42,7 +42,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          fetch-depth: 0
+          sparse-checkout: |
+            .github/scripts
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract plugin details
@@ -130,6 +131,11 @@ jobs:
             echo "current_version=v0.0.1" >> "$GITHUB_OUTPUT"
             echo "Registry component not found, will create new registry at v0.1.0"
           fi
+
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}/.github/scripts
 
       - name: Prepare registry constructor
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
