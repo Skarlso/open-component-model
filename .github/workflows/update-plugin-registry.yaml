@@ -151,13 +151,8 @@ jobs:
             exit 0
           fi
 
-          # Check if plugin exists and get its current version
-          echo "DEBUG: Checking for plugin ${PLUGIN_NAME} in registry..."
-          CURRENT_PLUGIN_VERSION=$(jq -r ".componentReferences[] | select(.name == \"${PLUGIN_NAME}\") | .version" /tmp/registry-descriptor.json 2>/dev/null || echo "")
-          echo "DEBUG: jq returned: '${CURRENT_PLUGIN_VERSION}'"
-
-          if [ -n "$CURRENT_PLUGIN_VERSION" ]; then
-            echo "DEBUG: Writing to GITHUB_OUTPUT..."
+          # Check if plugin exists and get its current version (take last if multiple exist)
+          if CURRENT_PLUGIN_VERSION=$(jq -r "[.componentReferences[] | select(.name == \"${PLUGIN_NAME}\") | .version] | last // empty" /tmp/registry-descriptor.json 2>/dev/null) && [ -n "$CURRENT_PLUGIN_VERSION" ]; then
             echo "plugin_exists=true" >> "$GITHUB_OUTPUT"
             echo "current_plugin_version=${CURRENT_PLUGIN_VERSION}" >> "$GITHUB_OUTPUT"
             echo "Plugin ${PLUGIN_NAME} exists in registry at version ${CURRENT_PLUGIN_VERSION}"
