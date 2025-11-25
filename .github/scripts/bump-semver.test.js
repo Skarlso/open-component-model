@@ -1,5 +1,6 @@
 import assert from "assert";
-import { parseVersion, bumpVersion } from "./bump-semver.js";
+import { parseVersion } from "./semver-utils.js";
+import { bumpVersion } from "./bump-semver.js";
 
 // ----------------------------------------------------------
 // parseVersion tests
@@ -39,13 +40,13 @@ assert.deepStrictEqual(
 assert.deepStrictEqual(
     parseVersion("v0.1.0"),
     { major: 0, minor: 1, patch: 0, prerelease: "" },
-    "Should parse zero version"
+    "Should parse minor version numbers"
 );
 
 assert.deepStrictEqual(
     parseVersion("\"v0.1.0\""),
     { major: 0, minor: 1, patch: 0, prerelease: "" },
-    "Should parse zero version"
+    "Should parse values that are quoted"
 );
 
 assert.deepStrictEqual(

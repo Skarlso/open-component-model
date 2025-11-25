@@ -125,6 +125,7 @@ jobs:
       group: helm-plugin-publish-${{ github.ref }}
       cancel-in-progress: false
     permissions:
+      # contents write is required to trigger the plugin registry root component update on successful publishing
       contents: write
       packages: write
     steps:
