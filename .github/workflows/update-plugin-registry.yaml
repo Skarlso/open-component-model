@@ -151,7 +151,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
-            const script = await import('.github/scripts/prepare-registry-constructor.js');
+            const script = await import('${{ github.workspace }}/.github/scripts/prepare-registry-constructor.js');
             await script.default({ core });
 
       - name: Publish registry component
