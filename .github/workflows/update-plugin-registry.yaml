@@ -41,11 +41,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        with:
-          sparse-checkout: |
-            .github/scripts
-            .github/config
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract plugin details
         id: plugin
@@ -153,9 +148,6 @@ jobs:
           script: |
             const script = await import('${{ github.workspace }}/.github/scripts/prepare-registry-constructor.js');
             await script.default({ core });
-            let content = fs.readFileSync('${{ env.REGISTRY_CONSTRUCTOR }}', 'utf8');
-            console.log('Updated registry constructor:');
-            console.log(content);
 
       - name: Publish registry component
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
