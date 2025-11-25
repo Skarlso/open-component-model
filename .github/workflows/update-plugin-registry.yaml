@@ -152,7 +152,12 @@ jobs:
           fi
 
           # Check if plugin exists and get its current version
-          if CURRENT_PLUGIN_VERSION=$(jq -r ".componentReferences[] | select(.name == \"${PLUGIN_NAME}\") | .version" /tmp/registry-descriptor.json 2>/dev/null) && [ -n "$CURRENT_PLUGIN_VERSION" ]; then
+          echo "DEBUG: Checking for plugin ${PLUGIN_NAME} in registry..."
+          CURRENT_PLUGIN_VERSION=$(jq -r ".componentReferences[] | select(.name == \"${PLUGIN_NAME}\") | .version" /tmp/registry-descriptor.json 2>/dev/null || echo "")
+          echo "DEBUG: jq returned: '${CURRENT_PLUGIN_VERSION}'"
+
+          if [ -n "$CURRENT_PLUGIN_VERSION" ]; then
+            echo "DEBUG: Writing to GITHUB_OUTPUT..."
             echo "plugin_exists=true" >> "$GITHUB_OUTPUT"
             echo "current_plugin_version=${CURRENT_PLUGIN_VERSION}" >> "$GITHUB_OUTPUT"
             echo "Plugin ${PLUGIN_NAME} exists in registry at version ${CURRENT_PLUGIN_VERSION}"
@@ -175,31 +180,22 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
-            try {
-              const { bumpVersion } = await import('${{ github.workspace }}/.github/scripts/bump-semver.js');
+            const { bumpVersion } = await import('${{ github.workspace }}/.github/scripts/bump-semver.js');
 
-              const currentVersion = process.env.CURRENT_VERSION;
-              const pluginExists = process.env.PLUGIN_EXISTS === 'true';
+            const currentVersion = process.env.CURRENT_VERSION;
+            const pluginExists = process.env.PLUGIN_EXISTS === 'true';
 
-              core.info(`Input: currentVersion=${currentVersion}, pluginExists=${pluginExists}`);
+            // Determine bump type
+            const updateType = pluginExists ? 'patch' : 'minor';
+            const newVersion = bumpVersion(currentVersion, updateType);
 
-              // Determine bump type
-              const updateType = pluginExists ? 'patch' : 'minor';
-              core.info(`Calling bumpVersion with: version="${currentVersion}", type="${updateType}"`);
+            core.info(`Current version: ${currentVersion}`);
+            core.info(`Update type: ${updateType} (${pluginExists ? 'updating existing plugin' : 'adding new plugin'})`);
+            core.info(`New version: ${newVersion}`);
 
-              const newVersion = bumpVersion(currentVersion, updateType);
-
-              core.info(`Current version: ${currentVersion}`);
-              core.info(`Update type: ${updateType} (${pluginExists ? 'updating existing plugin' : 'adding new plugin'})`);
-              core.info(`New version: ${newVersion}`);
-
-              core.setOutput('old_version', currentVersion);
-              core.setOutput('new_version', newVersion);
-              core.setOutput('update_type', updateType);
-            } catch (error) {
-              core.setFailed(`Version bump failed: ${error.message}\nStack: ${error.stack}`);
-              throw error;
-            }
+            core.setOutput('old_version', currentVersion);
+            core.setOutput('new_version', newVersion);
+            core.setOutput('update_type', updateType);
 
       - name: Prepare registry constructor
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
