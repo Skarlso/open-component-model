@@ -44,3 +44,5 @@ go.work.sum
 
 # gitguardian
 .cache_ggshield
+
+node_modeules/
