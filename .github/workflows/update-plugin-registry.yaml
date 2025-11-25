@@ -42,6 +42,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
+          fetch-depth: 0
           sparse-checkout: |
             .github/scripts
             .github/config
