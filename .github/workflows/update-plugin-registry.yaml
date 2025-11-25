@@ -160,7 +160,7 @@ jobs:
           NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
           OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
           CLI_IMAGE: ghcr.io/open-component-model/cli:main
-          WORKDIR: .github/config
+          WORKDIR: ${{ github.workspace }}/.github/config
         shell: bash
         run: |
           set -euo pipefail
