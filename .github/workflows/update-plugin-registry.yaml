@@ -167,7 +167,7 @@ jobs:
           
           echo "New component constructor"
           ls -l
-          cat ./plugin-registry-constructor.yaml          
+          cat $WORKDIR/plugin-registry-constructor.yaml
 
           docker run --rm \
             -v "${HOME}/.docker/config.json:/.docker/config.json:ro" \
