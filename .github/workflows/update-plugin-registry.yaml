@@ -166,6 +166,9 @@ jobs:
           set -euo pipefail
 
           echo "Publishing registry component version ${NEW_VERSION}"
+          
+          echo "New component constructor"
+          cat ./plugin-registry-constructor.yaml          
 
           docker run --rm \
             -v "${HOME}/.docker/config.json:/.docker/config.json:ro" \
