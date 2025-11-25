@@ -22,7 +22,7 @@ export default async function computeRcVersion({ core }) {
     const latestStable = run(core, `git tag --list '${tagPrefix}${basePrefix}.*' | sort -V | tail -n1`);
     const latestRc = run(core, `git tag --list '${tagPrefix}${basePrefix}.*-rc.*' | sort -V | tail -n1`);
 
-    const { baseVersion, rcVersion } = computeNextVersions(basePrefix, latestStable, latestRc);
+    const { baseVersion, rcVersion } = computeNextVersions(basePrefix, latestStable, latestRc, false);
 
     const rcTag = `${tagPrefix}${rcVersion}`;
     const promotionTag = `${tagPrefix}${baseVersion}`;
@@ -90,14 +90,21 @@ export function parseBranch(branch) {
  * @param {string} basePrefix - Branch base prefix (e.g., "0.1" from "releases/v0.1").
  * @param {string} [latestStableTag] - Most recent stable tag (e.g., "cli/v0.1.0").
  * @param {string} [latestRcTag] - Most recent RC tag (e.g., "cli/v0.1.1-rc.2").
+ * @param {boolean} [bumpMinorVersion] - Bump minor version instead of patch version.
  * @returns {{ baseVersion: string, rcVersion: string }}
  *   baseVersion: The semantic base version (e.g., "0.1.1").
  *   rcVersion: The computed RC tag (e.g., "0.1.1-rc.3").
  */
-export function computeNextVersions(basePrefix, latestStableTag, latestRcTag) {
+export function computeNextVersions(basePrefix, latestStableTag, latestRcTag, bumpMinorVersion) {
     const parseTag = tag => parseVersionArray(tag).join(".");
     const extractRcNumber = tag => parseInt(tag?.match(/-rc\.(\d+)/)?.[1] ?? "0", 10);
-    const incrementPatch = ([maj, min, pat]) => [maj, min, pat + 1];
+    const incrementVersion = ([maj, min, pat]) => {
+        if (bumpMinorVersion) {
+            return [maj, min + 1, 0];
+        }
+
+        return [maj, min, pat + 1];
+    };
 
     const stableVersionParts = parseVersionArray(latestStableTag);
     const rcVersionParts = parseVersionArray(latestRcTag);
@@ -117,7 +124,7 @@ export function computeNextVersions(basePrefix, latestStableTag, latestRcTag) {
 
         // First RC after last stable release
         case latestStableTag && !latestRcTag:
-            [major, minor, patch] = incrementPatch([major, minor, patch]);
+            [major, minor, patch] = incrementVersion([major, minor, patch]);
             nextBaseVersion = `${major}.${minor}.${patch}`;
             break;
 
@@ -136,7 +143,7 @@ export function computeNextVersions(basePrefix, latestStableTag, latestRcTag) {
 
         // Stable newer → start new patch RC
         case isStableNewer(latestStableTag, latestRcTag):
-            [major, minor, patch] = incrementPatch([major, minor, patch]);
+            [major, minor, patch] = incrementVersion([major, minor, patch]);
             nextBaseVersion = `${major}.${minor}.${patch}`;
             nextRcNumber = 1;
             break;
