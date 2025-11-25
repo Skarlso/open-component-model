@@ -44,8 +44,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           sparse-checkout: |
-            ./github/config
-            ./github/scripts
+            .github/config
+            .github/scripts
 
       - name: Extract plugin details
         id: plugin
@@ -136,7 +136,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: ${{ github.workspace }}/scripts
+        working-directory: .github/scripts
 
       - name: Prepare registry constructor
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
@@ -151,7 +151,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
-            const script = await import('${{ github.workspace }}/scripts/prepare-registry-constructor.js');
+            const script = await import('.github/scripts/prepare-registry-constructor.js');
             await script.default({ core });
 
       - name: Publish registry component
@@ -160,7 +160,7 @@ jobs:
           NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
           OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
           CLI_IMAGE: ghcr.io/open-component-model/cli:main
-          WORKDIR: ${{ github.workspace }}/config
+          WORKDIR: .github/config
         shell: bash
         run: |
           set -euo pipefail
