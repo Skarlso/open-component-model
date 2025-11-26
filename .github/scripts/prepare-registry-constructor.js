@@ -170,6 +170,7 @@ export function prepareRegistryConstructor(options) {
  */
 function getRegistryDescriptor(repository, componentName, configPath, core) {
     try {
+        core.info(`Fetching existing registry descriptor for ${repository}//${componentName}`);
         const output = runOcmCommand({
             core: core,
             args: [
