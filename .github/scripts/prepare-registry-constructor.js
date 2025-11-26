@@ -299,6 +299,7 @@ export default async function prepareRegistryConstructorAction({core}) {
                 `--config "${ocmConfig}"`,
                 `--repository "${ocmRepository}"`,
                 `--constructor "./plugin-registry-constructor.yaml"`,
+                `--display-mode static`,
             ], volumes: {
                 [workdir]: workdir,
             }, workdir,
