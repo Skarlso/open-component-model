@@ -184,7 +184,7 @@ function getRegistryDescriptor(repository, componentName, configPath, core) {
             throwOnError: false,
         });
 
-        const data = JSON.parse(output);
+        const data = JSON.parse(output.trim());
         const component = data[0]?.component;
 
         if (!component) {
