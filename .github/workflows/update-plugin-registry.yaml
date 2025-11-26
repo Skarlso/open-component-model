@@ -23,10 +23,6 @@ on:
         default: false
         type: boolean
 
-env:
-  # Repository selection for checkout
-  REGISTRY_CONSTRUCTOR: .github/config/plugin-registry-constructor.yaml
-
 jobs:
   update-registry:
     name: Update Plugin Registry
@@ -40,10 +36,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           sparse-checkout: |
-            .github/config
             .github/scripts
+            .github/config
 
       - name: Extract plugin details
         id: plugin
@@ -91,143 +86,20 @@ jobs:
                     propagateConsumerIdentity: true
           EOF
 
-          echo "Created ${HOME}/.ocmconfig:"
-          cat ${HOME}/.ocmconfig
-
-      - name: Repository Owner
-        run: |
-          echo "REPOSITORY_OWNER=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
-
-      - name: Fetch current registry version and descriptor
-        id: registry_version
-        env:
-          CLI_IMAGE: ghcr.io/open-component-model/cli:main
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
-          REGISTRY_COMPONENT: ocm.software/plugin-registry
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Checking for existing registry component..."
-
-          # Try to fetch the latest version of the registry component
-          if REGISTRY_DATA=$(docker run --rm \
-            -v "${HOME}/.docker/config.json:/.docker/config.json:ro" \
-            -v "${HOME}/.ocmconfig:/.ocmconfig:ro" \
-            -v /etc/ssl/certs/:/etc/ssl/certs/:ro \
-            "$CLI_IMAGE" \
-              get cv ${OCM_REPOSITORY}//${REGISTRY_COMPONENT} -ojson --loglevel=error --latest --config /.ocmconfig 2>/dev/null) && [ -n "$REGISTRY_DATA" ]; then
-
-            CURRENT_VERSION=$(echo "$REGISTRY_DATA" | jq -r '.[0].component.version')
-            echo "registry_exists=true" >> "$GITHUB_OUTPUT"
-            echo "current_version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
-
-            # Save the full descriptor to a file for later use
-            echo "$REGISTRY_DATA" | jq '.[0].component' > /tmp/registry-descriptor.json
-            echo "Found existing registry at version ${CURRENT_VERSION}"
-          else
-            echo "registry_exists=false" >> "$GITHUB_OUTPUT"
-            echo "current_version=v0.0.1" >> "$GITHUB_OUTPUT"
-            echo "Registry component not found, will create new registry at v0.1.0"
-          fi
-
-
       - name: Install dependencies
         run: npm ci
-        working-directory: .github/scripts
+        working-directory: ${{ github.workspace }}/.github/scripts
 
-      - name: Prepare registry constructor
-        id: new_version
-        if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
+      - name: Update plugin registry
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          REGISTRY_CONSTRUCTOR: ${{ env.REGISTRY_CONSTRUCTOR }}
-          REGISTRY_VERSION: ${{ steps.registry_version.outputs.current_version }}
+          REPOSITORY_OWNER: ghcr.io/${{ github.repository_owner }}/plugins
           PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
           PLUGIN_COMPONENT: ${{ steps.plugin.outputs.plugin_component }}
           PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
-          REGISTRY_EXISTS: ${{ steps.registry_version.outputs.registry_exists }}
-          DESCRIPTOR_PATH: /tmp/registry-descriptor.json
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+          CONSTRUCTOR_PATH: ${{ github.workspace }}/.github/config/plugin-registry-constructor.yaml
+          DRY_RUN: ${{ inputs.dry_run }}
         with:
           script: |
-            const script = await import('${{ github.workspace }}/.github/scripts/prepare-registry-constructor.js');
+            const script = await import('${{ github.workspace }}/.github/scripts/update-plugin-registry.js');
             await script.default({ core });
-
-      - name: Publish registry component
-        if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
-        env:
-          NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
-          CLI_IMAGE: ghcr.io/open-component-model/cli:main
-          WORKDIR: ${{ github.workspace }}/.github/config
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Publishing registry component version ${NEW_VERSION}"
-
-          docker run --rm \
-            -v "${HOME}/.docker/config.json:/.docker/config.json:ro" \
-            -v "${HOME}/.ocmconfig:/.ocmconfig:ro" \
-            -v /etc/ssl/certs/:/etc/ssl/certs/:ro \
-            -v "${WORKDIR}:${WORKDIR}" \
-            -w "${WORKDIR}" \
-            "$CLI_IMAGE" \
-              add component-version \
-              --component-version-conflict-policy replace \
-              --config "/.ocmconfig" \
-              --repository "${OCM_REPOSITORY}" \
-              --constructor "./plugin-registry-constructor.yaml"
-
-      - name: Verify published registry
-        if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
-        env:
-          NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
-          CLI_IMAGE: ghcr.io/open-component-model/cli:main
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          docker run --rm \
-            -v "${HOME}/.docker/config.json:/.docker/config.json:ro" \
-            -v "${HOME}/.ocmconfig:/.ocmconfig:ro" \
-            -v /etc/ssl/certs/:/etc/ssl/certs/:ro \
-            "$CLI_IMAGE" \
-              get component \
-              --config "/.ocmconfig" \
-              "${OCM_REPOSITORY}//ocm.software/plugin-registry:${NEW_VERSION}"
-
-      - name: Summary
-        env:
-          OLD_VERSION: ${{ steps.registry_version.outputs.current_version }}
-          NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
-          PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
-          PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
-          PLUGIN_COMPONENT: ${{ steps.plugin.outputs.plugin_component }}
-          OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
-          DRY_RUN: ${{ inputs.dry_run }}
-        shell: bash
-        run: |
-          echo "## Plugin Registry Update" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$DRY_RUN" = "true" ]; then
-            echo "**DRY RUN - No changes published**" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          echo "### Registry Version" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Previous: ${OLD_VERSION}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- New: ${NEW_VERSION}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          echo "### Plugin Details" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Plugin Name: ${PLUGIN_NAME}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Plugin Version: ${PLUGIN_VERSION}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Plugin Component: ${PLUGIN_COMPONENT}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$DRY_RUN" != "true" ]; then
-            echo "### Published Location" >> "$GITHUB_STEP_SUMMARY"
-            echo "\`${OCM_REPOSITORY}//ocm.software/plugin-registry:${NEW_VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
-          fi
