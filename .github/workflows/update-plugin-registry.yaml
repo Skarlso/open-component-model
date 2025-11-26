@@ -86,6 +86,9 @@ jobs:
                     propagateConsumerIdentity: true
           EOF
 
+      - name: Repository Owner
+        run: |
+          echo "REPOSITORY_OWNER=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
       - name: Install dependencies
         run: npm ci
         working-directory: ${{ github.workspace }}/.github/scripts
@@ -93,7 +96,7 @@ jobs:
       - name: Update plugin registry
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          REPOSITORY_OWNER: ghcr.io/${{ github.repository_owner }}/plugins
+          REPOSITORY_OWNER: ${{ env.REPOSITORY_OWNER }}/plugins
           PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
           PLUGIN_COMPONENT: ${{ steps.plugin.outputs.plugin_component }}
           PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
