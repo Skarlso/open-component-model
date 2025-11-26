@@ -17,7 +17,7 @@ const cliImage = "ghcr.io/open-component-model/cli:main"
  * @returns {string} Location of the config file.
  */
 function generateOCMConfig() {
-    // const homeDir = process.env.HOME || process.env.USERPROFILE;
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
     const config = `type: generic.config.ocm.software/v1
           configurations:
             - type: credentials.config.ocm.software
@@ -27,7 +27,7 @@ function generateOCMConfig() {
                     dockerConfigFile: /.docker/config.json
                     propagateConsumerIdentity: true`
 
-    const ocmConfig = `/.ocmconfig`;
+    const ocmConfig = `${homeDir}/.ocmconfig`;
     fs.writeFileSync(ocmConfig, JSON.stringify(config, null, 2));
 
     return ocmConfig;
@@ -45,12 +45,12 @@ function generateOCMConfig() {
  * @returns {string} Command output
  */
 function runOcmCommand({core, args, volumes = {}, workdir, throwOnError = true}) {
-    // const homeDir = process.env.HOME || process.env.USERPROFILE;
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
 
     // always required
     const volumeMounts = [
-        `-v "/.docker/config.json:/.docker/config.json:ro"`,
-        `-v "/.ocmconfig:/.ocmconfig:ro"`,
+        `-v "${homeDir}/.docker/config.json:/.docker/config.json:ro"`,
+        `-v "${homeDir}/.ocmconfig:/.ocmconfig:ro"`,
         `-v "/etc/ssl/certs/:/etc/ssl/certs/:ro"`,
     ];
 
