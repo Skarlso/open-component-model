@@ -171,6 +171,7 @@ export function prepareRegistryConstructor(options) {
 function getRegistryDescriptor(repository, componentName, configPath, core) {
     try {
         const output = runOcmCommand({
+            core: core,
             args: [
                 "get cv",
                 `${repository}//${componentName}`,
@@ -278,6 +279,7 @@ export default async function prepareRegistryConstructorAction({core}) {
         // push the new plugin registry component
         const workdir = dirname(constructorPath);
         runOcmCommand({
+            core: core,
             args: [
                 "add component-version",
                 "--component-version-conflict-policy replace",
@@ -293,6 +295,7 @@ export default async function prepareRegistryConstructorAction({core}) {
 
         // verify that the component exists
         runOcmCommand({
+            core: core,
             args: [
                 "get component",
                 `--config "ocmConfig"`,
