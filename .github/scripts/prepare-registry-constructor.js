@@ -273,14 +273,6 @@ export default async function prepareRegistryConstructorAction({core}) {
             core
         )
 
-        // // Why? Because registryInfo.version trips up the intellisense feature of any IDE and breaks
-        // // auto-completion. And I hate it.
-        // const {
-        //     version,
-        //     exists,
-        //     descriptor
-        // } = registryInfo
-
         // generate the constructor
         const result = prepareRegistryConstructor({
             core: core,
@@ -306,7 +298,7 @@ export default async function prepareRegistryConstructorAction({core}) {
                 "--component-version-conflict-policy replace",
                 `--config "${ocmConfig}"`,
                 `--repository "${ocmRepository}"`,
-                `--constructor "${constructorPath}"`,
+                `--constructor "./plugin-registry-constructor.yaml"`,
             ], volumes: {
                 [workdir]: workdir,
             }, workdir,
