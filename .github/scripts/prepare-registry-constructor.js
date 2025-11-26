@@ -286,7 +286,7 @@ export default async function prepareRegistryConstructorAction({core}) {
                 "--component-version-conflict-policy replace",
                 `--config "${ocmConfig}"`,
                 `--repository "${ocmRepository}"`,
-                `--constructor "./${constructorPath}"`,
+                `--constructor "${constructorPath}"`,
             ], volumes: {
                 [workdir]: workdir,
             }, workdir,
