@@ -25,7 +25,7 @@ on:
 
 env:
   # Repository selection for checkout
-  REGISTRY_CONSTRUCTOR: .github/config/plugin-registry-constructor.yaml
+  REGISTRY_CONSTRUCTOR: ${{ github.workspace }}/.github/config/plugin-registry-constructor.yaml
 
 jobs:
   update-registry:
