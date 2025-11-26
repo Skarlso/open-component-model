@@ -125,6 +125,7 @@ export default async function prepareRegistryConstructorAction({ core }) {
         core.info(`Added plugin reference: ${pluginName} v${pluginVersion}`);
         core.info(`Registry version: ${registryVersion}`);
         core.info(`Constructor written to: ${constructorPath}`);
+        core.setOutput("new_version", result.version);
 
         await core.summary
             .addHeading('Registry Constructor Prepared')

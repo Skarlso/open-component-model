@@ -139,6 +139,7 @@ jobs:
         working-directory: .github/scripts
 
       - name: Prepare registry constructor
+        id: new_version
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
         env:
           REGISTRY_CONSTRUCTOR: ${{ env.REGISTRY_CONSTRUCTOR }}
