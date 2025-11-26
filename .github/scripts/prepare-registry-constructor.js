@@ -246,6 +246,14 @@ export default async function prepareRegistryConstructorAction({core}) {
 
         const ocmConfig = generateOCMConfig() // generate the required OCM config.
 
+        // Pre-fetch the cli because it pollutes the command output, and we can't get ONLY the JSON output.
+        runOcmCommand({
+            args: [
+                "--help",
+            ],
+            throwOnError: true,
+        });
+
         // get the registry descriptor and check if it exists
         const registryInfo = getRegistryDescriptor(
             ocmRepository,
