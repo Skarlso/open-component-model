@@ -86,6 +86,7 @@ jobs:
         id: new_version
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
         env:
+          REGISTRY_COMPONENT: ocm.software/plugin-registry
           REGISTRY_CONSTRUCTOR: ${{ env.REGISTRY_CONSTRUCTOR }}
           OCM_REPOSITORY: ${{ env.OCM_REPOSITORY }}
           PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
