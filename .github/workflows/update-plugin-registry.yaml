@@ -157,7 +157,6 @@ jobs:
       - name: Publish registry component
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
         env:
-          NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
           OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}/plugins
           CLI_IMAGE: ghcr.io/open-component-model/cli:main
           WORKDIR: ${{ github.workspace }}/.github/config
@@ -178,7 +177,7 @@ jobs:
               --component-version-conflict-policy replace \
               --config "/.ocmconfig" \
               --repository "${OCM_REPOSITORY}" \
-              --constructor "./plugin-registry-constructor.yaml"
+              --constructor "${REGISTRY_CONSTRUCTOR}"
 
       - name: Verify published registry
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
