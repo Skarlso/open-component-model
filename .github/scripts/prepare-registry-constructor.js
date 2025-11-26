@@ -79,6 +79,12 @@ function runOcmCommand({core, args, volumes = {}, workdir, throwOnError = true})
         }).toString();
     } catch (error) {
         if (throwOnError) {
+            const stdout = error.stdout?.toString() || "";
+            const stderr = error.stderr?.toString() || "";
+
+            core.warning("From command output stderr: ", stderr);
+            core.warning("From command output stdout: ", stdout);
+                        
             throw new Error(
                 `OCM command failed: ${error.message}\nCommand: ${dockerCmd}`
             );
@@ -275,13 +281,13 @@ export default async function prepareRegistryConstructorAction({core}) {
 
         // generate the constructor
         const result = prepareRegistryConstructor({
-            constructorPath,
-            version,
-            pluginName,
-            pluginComponent,
-            pluginVersion,
-            exists,
-            descriptor
+            constructorPath: constructorPath,
+            registryVersion: version,
+            pluginName: pluginName,
+            pluginComponent: pluginComponent,
+            pluginVersion: pluginVersion,
+            registryExists: exists,
+            descriptor: descriptor,
         });
 
         const rendered = yaml.dump(result, {lineWidth: -1});
