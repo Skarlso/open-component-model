@@ -19,16 +19,16 @@ const cliImage = "ghcr.io/open-component-model/cli:main"
 function generateOCMConfig() {
     const homeDir = process.env.HOME || process.env.USERPROFILE;
     const config = `type: generic.config.ocm.software/v1
-          configurations:
-            - type: credentials.config.ocm.software
-              repositories:
-                - repository:
-                    type: DockerConfig/v1
-                    dockerConfigFile: /.docker/config.json
-                    propagateConsumerIdentity: true`
+configurations:
+  - type: credentials.config.ocm.software
+    repositories:
+      - repository:
+          type: DockerConfig/v1
+          dockerConfigFile: /.docker/config.json
+          propagateConsumerIdentity: true`;
 
     const ocmConfig = `${homeDir}/.ocmconfig`;
-    fs.writeFileSync(ocmConfig, JSON.stringify(config, null, 2));
+    fs.writeFileSync(ocmConfig, config);
 
     return ocmConfig;
 }
@@ -72,7 +72,7 @@ function runOcmCommand({core, args, volumes = {}, workdir, throwOnError = true})
 
     try {
         core.info(`running the following command: ${dockerCmd}`);
-        
+
         return execSync(dockerCmd, {
             encoding: "utf8",
             stdio: "pipe",
