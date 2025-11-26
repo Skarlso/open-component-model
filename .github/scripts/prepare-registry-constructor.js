@@ -36,6 +36,7 @@ function generateOCMConfig() {
 /**
  * Execute OCM CLI command in Docker container.
  *
+ * @param {import('@actions/github-core')} core
  * @param {Object} options - Command options
  * @param {string[]} options.args - OCM CLI arguments
  * @param {Object.<string, string>} [options.volumes] - Additional volume mounts (hostPath: containerPath)
@@ -43,7 +44,7 @@ function generateOCMConfig() {
  * @param {boolean} [options.throwOnError] - Whether to throw on non-zero exit (default: true)
  * @returns {string} Command output
  */
-function runOcmCommand({args, volumes = {}, workdir, throwOnError = true}) {
+function runOcmCommand({core, args, volumes = {}, workdir, throwOnError = true}) {
     const homeDir = process.env.HOME || process.env.USERPROFILE;
 
     // always required
@@ -70,6 +71,8 @@ function runOcmCommand({args, volumes = {}, workdir, throwOnError = true}) {
         .join(" ");
 
     try {
+        core.info(`running the following command: ${dockerCmd}`);
+        
         return execSync(dockerCmd, {
             encoding: "utf8",
             stdio: throwOnError ? "pipe" : "inherit",
