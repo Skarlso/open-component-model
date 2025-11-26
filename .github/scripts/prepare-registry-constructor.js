@@ -184,6 +184,8 @@ function getRegistryDescriptor(repository, componentName, configPath, core) {
             throwOnError: false,
         });
 
+        core.info(`OCM output that we are trying to parse:${output}`);
+
         const data = JSON.parse(output.trim());
         const component = data[0]?.component;
 
