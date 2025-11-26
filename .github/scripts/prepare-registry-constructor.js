@@ -296,7 +296,7 @@ export default async function prepareRegistryConstructorAction({core}) {
         const rendered = yaml.dump(result, {lineWidth: -1});
         fs.writeFileSync(constructorPath, rendered, 'utf8');
 
-        core.info("Preparing to publish the registry component with constructor: ", rendered)
+        core.info(`Preparing to publish the registry component with constructor: ${rendered}`);
         // push the new plugin registry component
         const workdir = dirname(constructorPath);
         runOcmCommand({
