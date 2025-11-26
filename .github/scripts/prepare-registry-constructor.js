@@ -105,6 +105,7 @@ function runOcmCommand({core, args, volumes = {}, workdir, throwOnError = true})
  * @param {string} options.pluginComponent - Plugin component name
  * @param {string} options.pluginVersion - Plugin version
  * @param {boolean} options.registryExists - Whether registry already exists
+ * @param {import('@actions/github-core')} options.core
  * @param {Object} [options.descriptor] - The actual descriptor of the root registry
  * @returns {Object} constructor - The constructor object that is created from the template.
  */
@@ -120,6 +121,7 @@ export function prepareRegistryConstructor(options) {
     } = options;
 
     const template = fs.readFileSync(constructorPath, 'utf8');
+    options.core.info(`Using constructor template: ${template}`);
     const constructor = yaml.load(template);
 
     if (registryExists) {
@@ -281,6 +283,7 @@ export default async function prepareRegistryConstructorAction({core}) {
 
         // generate the constructor
         const result = prepareRegistryConstructor({
+            core: core,
             constructorPath: constructorPath,
             registryVersion: registryInfo.version,
             pluginName: pluginName,
