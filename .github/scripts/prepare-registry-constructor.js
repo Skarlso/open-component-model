@@ -75,7 +75,7 @@ function runOcmCommand({core, args, volumes = {}, workdir, throwOnError = true})
         
         return execSync(dockerCmd, {
             encoding: "utf8",
-            stdio: throwOnError ? "pipe" : "inherit",
+            stdio: "inherit",
         }).toString();
     } catch (error) {
         if (throwOnError) {
