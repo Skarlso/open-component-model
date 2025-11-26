@@ -47,7 +47,7 @@ export function prepareRegistryConstructor(options) {
 
         // Compute the new version. If the plugin does not exist we increase the minor version.
         const pluginExists = constructor.componentReferences.find(r => r.name === pluginName);
-        const nextVersion = computeNextVersions(registryVersion, registryVersion, "", pluginExists);
+        const nextVersion = computeNextVersions(registryVersion, registryVersion, "", !pluginExists);
         constructor.version = nextVersion.baseVersion;
 
     } else {

@@ -202,7 +202,7 @@ jobs:
 
       - name: Summary
         env:
-          OLD_VERSION: ${{ steps.new_version.outputs.old_version }}
+          OLD_VERSION: ${{ steps.registry_version.outputs.current_version }}
           NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
           PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
           PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
