@@ -187,7 +187,7 @@ function getRegistryDescriptor(repository, componentName, configPath, core) {
                 "-ojson",
                 "--loglevel=error",
                 "--latest",
-                `--config ${configPath}`,
+                `--config "/.ocmconfig"`,
             ],
             throwOnError: true,
         });
@@ -294,7 +294,7 @@ export default async function prepareRegistryConstructorAction({core}) {
             args: [
                 "add cv",
                 "--component-version-conflict-policy replace",
-                `--config "${ocmConfig}"`,
+                `--config "/.ocmconfig"`,
                 `--repository "${ocmRepository}"`,
                 `--constructor "./plugin-registry-constructor.yaml"`,
                 `--display-mode static`,
@@ -310,7 +310,7 @@ export default async function prepareRegistryConstructorAction({core}) {
             core: core,
             args: [
                 "get component",
-                `--config "ocmConfig"`,
+                `--config "/.ocmconfig"`,
                 `"${ocmRepository}//${result.name}:${result.version}"`,
             ],
             throwOnError: true,
