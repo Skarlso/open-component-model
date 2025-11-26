@@ -248,6 +248,7 @@ export default async function prepareRegistryConstructorAction({core}) {
 
         // Pre-fetch the cli because it pollutes the command output, and we can't get ONLY the JSON output.
         runOcmCommand({
+            core: core,
             args: [
                 "--help",
             ],
