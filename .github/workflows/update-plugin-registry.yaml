@@ -23,6 +23,10 @@ on:
         default: false
         type: boolean
 
+env:
+  # Repository selection for checkout
+  REGISTRY_CONSTRUCTOR: .github/config/plugin-registry-constructor.yaml
+
 jobs:
   update-registry:
     name: Update Plugin Registry
@@ -70,39 +74,59 @@ jobs:
               username: ${{ github.actor }}
               password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate OCM config
-        shell: bash
+      - name: OCM Plugin Repository
         run: |
-          set -euo pipefail
+          echo "OCM_REPOSITORY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/plugins" >> $GITHUB_ENV
 
-          cat > ${HOME}/.ocmconfig <<EOF
-          type: generic.config.ocm.software/v1
-          configurations:
-            - type: credentials.config.ocm.software
-              repositories:
-                - repository:
-                    type: DockerConfig/v1
-                    dockerConfigFile: /.docker/config.json
-                    propagateConsumerIdentity: true
-          EOF
-
-      - name: Repository Owner
-        run: |
-          echo "REPOSITORY_OWNER=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
       - name: Install dependencies
         run: npm ci
         working-directory: ${{ github.workspace }}/.github/scripts
 
-      - name: Update plugin registry
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      - name: Run root component version generation
+        id: new_version
+        if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
         env:
-          REPOSITORY_OWNER: ${{ env.REPOSITORY_OWNER }}/plugins
+          REGISTRY_CONSTRUCTOR: ${{ env.REGISTRY_CONSTRUCTOR }}
+          OCM_REPOSITORY: ${{ env.OCM_REPOSITORY }}
           PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
           PLUGIN_COMPONENT: ${{ steps.plugin.outputs.plugin_component }}
           PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
-          CONSTRUCTOR_PATH: ${{ github.workspace }}/.github/config/plugin-registry-constructor.yaml
-          DRY_RUN: ${{ inputs.dry_run }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
-            const script = await import('${{ github.workspace }}/.github/scripts/update-plugin-registry.js');
+            const script = await import('${{ github.workspace }}/.github/scripts/prepare-registry-constructor.js');
             await script.default({ core });
+
+      - name: Summary
+        env:
+          OLD_VERSION: ${{ steps.new_version.outputs.old_version }}
+          NEW_VERSION: ${{ steps.new_version.outputs.new_version }}
+          PLUGIN_NAME: ${{ steps.plugin.outputs.plugin_name }}
+          PLUGIN_VERSION: ${{ steps.plugin.outputs.plugin_version }}
+          PLUGIN_COMPONENT: ${{ steps.plugin.outputs.plugin_component }}
+          OCM_REPOSITORY: ${{ env.OCM_REPOSITORY }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        shell: bash
+        run: |
+          echo "## Plugin Registry Update" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "**DRY RUN - No changes published**" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "### Registry Version" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Previous: ${OLD_VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- New: ${NEW_VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          echo "### Plugin Details" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Plugin Name: ${PLUGIN_NAME}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Plugin Version: ${PLUGIN_VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Plugin Component: ${PLUGIN_COMPONENT}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$DRY_RUN" != "true" ]; then
+            echo "### Published Location" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`${OCM_REPOSITORY}//ocm.software/plugin-registry:${NEW_VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
