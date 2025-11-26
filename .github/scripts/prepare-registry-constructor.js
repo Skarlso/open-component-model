@@ -271,23 +271,23 @@ export default async function prepareRegistryConstructorAction({core}) {
             core
         )
 
-        // Why? Because registryInfo.version trips up the intellisense feature of any IDE and breaks
-        // auto-completion. And I hate it.
-        const {
-            version,
-            exists,
-            descriptor
-        } = registryInfo
+        // // Why? Because registryInfo.version trips up the intellisense feature of any IDE and breaks
+        // // auto-completion. And I hate it.
+        // const {
+        //     version,
+        //     exists,
+        //     descriptor
+        // } = registryInfo
 
         // generate the constructor
         const result = prepareRegistryConstructor({
             constructorPath: constructorPath,
-            registryVersion: version,
+            registryVersion: registryInfo.version,
             pluginName: pluginName,
             pluginComponent: pluginComponent,
             pluginVersion: pluginVersion,
-            registryExists: exists,
-            descriptor: descriptor,
+            registryExists: registryInfo.exists,
+            descriptor: registryInfo.descriptor,
         });
 
         const rendered = yaml.dump(result, {lineWidth: -1});
@@ -328,7 +328,7 @@ export default async function prepareRegistryConstructorAction({core}) {
 
         // set this value for the Summary and the Verify action.
         core.setOutput("new_version", result.version);
-        core.setOutput("old_version", version);
+        core.setOutput("old_version", registryInfo.version);
 
         await core.summary
             .addHeading('Registry Constructor Prepared')
