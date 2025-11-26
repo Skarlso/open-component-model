@@ -84,7 +84,7 @@ function runOcmCommand({core, args, volumes = {}, workdir, throwOnError = true})
 
             core.warning("From command output stderr: ", stderr);
             core.warning("From command output stdout: ", stdout);
-                        
+
             throw new Error(
                 `OCM command failed: ${error.message}\nCommand: ${dockerCmd}`
             );
@@ -293,7 +293,7 @@ export default async function prepareRegistryConstructorAction({core}) {
         const rendered = yaml.dump(result, {lineWidth: -1});
         fs.writeFileSync(constructorPath, rendered, 'utf8');
 
-        core.info("Preparing to publish the registry component")
+        core.info("Preparing to publish the registry component with constructor: ", rendered)
         // push the new plugin registry component
         const workdir = dirname(constructorPath);
         runOcmCommand({
