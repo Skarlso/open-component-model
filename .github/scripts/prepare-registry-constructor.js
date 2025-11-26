@@ -75,7 +75,7 @@ function runOcmCommand({core, args, volumes = {}, workdir, throwOnError = true})
         
         return execSync(dockerCmd, {
             encoding: "utf8",
-            stdio: "inherit",
+            stdio: throwOnError ? "pipe" : "inherit",
         }).toString();
     } catch (error) {
         if (throwOnError) {
@@ -181,7 +181,7 @@ function getRegistryDescriptor(repository, componentName, configPath, core) {
                 "--latest",
                 `--config ${configPath}`,
             ],
-            throwOnError: false,
+            throwOnError: true,
         });
 
         core.info(`OCM output that we are trying to parse:${output}`);
