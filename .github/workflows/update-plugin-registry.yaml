@@ -178,7 +178,7 @@ jobs:
               --component-version-conflict-policy replace \
               --config "/.ocmconfig" \
               --repository "${OCM_REPOSITORY}" \
-              --constructor "${REGISTRY_CONSTRUCTOR}"
+              --constructor "./plugin-registry-constructor.yaml"
 
       - name: Verify published registry
         if: ${{ inputs.dry_run != true && github.event_name != 'pull_request' }}
