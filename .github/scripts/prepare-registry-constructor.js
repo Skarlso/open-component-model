@@ -192,8 +192,6 @@ function getRegistryDescriptor(repository, componentName, configPath, core) {
             throwOnError: true,
         });
 
-        core.info(`OCM output that we are trying to parse:${output}`);
-
         const data = JSON.parse(output.trim());
         const component = data[0]?.component;
 
@@ -294,7 +292,7 @@ export default async function prepareRegistryConstructorAction({core}) {
         runOcmCommand({
             core: core,
             args: [
-                "add component-version",
+                "add cv",
                 "--component-version-conflict-policy replace",
                 `--config "${ocmConfig}"`,
                 `--repository "${ocmRepository}"`,
