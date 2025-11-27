@@ -43,7 +43,6 @@ jobs:
       should_push_oci_image: ${{ steps.branch-check.outputs.should_push_oci_image }}
     permissions:
       contents: read
-      id-token: write
       attestations: write
     steps:
       - name: Checkout
