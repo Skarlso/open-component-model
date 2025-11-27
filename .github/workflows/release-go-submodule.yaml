@@ -171,6 +171,7 @@ jobs:
     secrets: inherit
     permissions:
       contents: read
+      id-token: write
       attestations: write
       packages: write
     with:
