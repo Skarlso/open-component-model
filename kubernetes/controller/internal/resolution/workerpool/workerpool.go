@@ -8,11 +8,17 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/golang-lru/v2/expirable"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	descriptor "ocm.software/open-component-model/bindings/go/descriptor/runtime"
 	"ocm.software/open-component-model/bindings/go/repository"
 )
+
+// RequesterInfo contains information about the object requesting resolution.
+type RequesterInfo struct {
+	NamespacedName types.NamespacedName
+}
 
 // ResolveOptions contains all the options the resolution service requires to perform a resolve operation.
 type ResolveOptions struct {
@@ -20,6 +26,9 @@ type ResolveOptions struct {
 	Version    string
 	Repository repository.ComponentVersionRepository
 	KeyFunc    func() (string, error)
+	// Requester is the information about the object requesting this resolution.
+	// It will be notified when the resolution completes.
+	Requester RequesterInfo
 }
 
 // Result contains the result of a resolution including any errors that might have occurred.
@@ -55,8 +64,14 @@ type WorkerPool struct {
 	PoolOptions
 	workQueue    chan *WorkItem
 	inProgressMu sync.Mutex
-	inProgress   map[string]struct{} // tracks keys currently being processed
+	inProgress   map[string]*inProgressEntry // tracks keys currently being processed
 	workersDone  sync.WaitGroup
+	eventChan    chan ResolutionEvent // channel for emitting resolution events
+}
+
+// inProgressEntry tracks an in-progress resolution request.
+type inProgressEntry struct {
+	requesters []RequesterInfo
 }
 
 // ErrResolutionInProgress is returned when a component version is being resolved in the background.
@@ -72,11 +87,20 @@ func NewWorkerPool(opts PoolOptions) *WorkerPool {
 		opts.QueueSize = 100
 	}
 
+	const eventChannelSize = 1000
 	return &WorkerPool{
 		PoolOptions: opts,
 		workQueue:   make(chan *WorkItem, opts.QueueSize),
-		inProgress:  make(map[string]struct{}),
+		// TODO: I bet Jakob will tell me to use an Informer.
+		inProgress: make(map[string]*inProgressEntry),
+		eventChan:  make(chan ResolutionEvent, eventChannelSize),
 	}
+}
+
+// EventChannel returns the channel that emits resolution events.
+// Controllers can watch this channel to get notified when resolutions complete.
+func (wp *WorkerPool) EventChannel() <-chan ResolutionEvent {
+	return wp.eventChan
 }
 
 // Start begins the worker pool.
@@ -161,8 +185,27 @@ func resolveWorkRequest[T any](ctx context.Context, wp *WorkerPool, opts Resolve
 	CacheMissCounterTotal.WithLabelValues(opts.Component, opts.Version).Inc()
 
 	// check if already/still in progress
-	if _, exists := wp.inProgress[key]; exists {
-		wp.Logger.V(1).Info("resolution still in progress", "component", opts.Component, "version", opts.Version)
+	if entry, exists := wp.inProgress[key]; exists {
+		// poor man's deduplicate
+		found := false
+		for _, existing := range entry.requesters {
+			if existing.NamespacedName == opts.Requester.NamespacedName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			entry.requesters = append(entry.requesters, opts.Requester)
+			wp.Logger.V(1).Info("resolution still in progress, added requester",
+				"component", opts.Component,
+				"version", opts.Version,
+				"requester", opts.Requester.NamespacedName)
+		} else {
+			wp.Logger.V(1).Info("resolution still in progress, requester already tracked",
+				"component", opts.Component,
+				"version", opts.Version,
+				"requester", opts.Requester.NamespacedName)
+		}
 		return result, ErrResolutionInProgress
 	}
 
@@ -180,10 +223,12 @@ func resolveWorkRequest[T any](ctx context.Context, wp *WorkerPool, opts Resolve
 
 	select {
 	case wp.workQueue <- workItem:
-		wp.inProgress[key] = struct{}{}
+		wp.inProgress[key] = &inProgressEntry{
+			requesters: []RequesterInfo{opts.Requester},
+		}
 		InProgressGauge.Set(float64(len(wp.inProgress)))
 		QueueSizeGauge.Set(float64(len(wp.workQueue)))
-		wp.Logger.V(1).Info("enqueued request", "component", opts.Component)
+		wp.Logger.V(1).Info("enqueued request", "component", opts.Component, "requester", opts.Requester.NamespacedName)
 
 		return result, ErrResolutionInProgress
 	default:
@@ -225,6 +270,15 @@ func (wp *WorkerPool) handleWorkItem(ctx context.Context, logger *logr.Logger, i
 
 	logger.V(1).Info("processing work item", "key", key)
 
+	// Get the list of requesters before we remove the in-progress entry
+	wp.inProgressMu.Lock()
+	entry, exists := wp.inProgress[key]
+	var requesters []RequesterInfo
+	if exists {
+		requesters = entry.requesters
+	}
+	wp.inProgressMu.Unlock()
+
 	// either way, we are done with this item so remove it and decrease InProgress count.
 	defer func() {
 		wp.inProgressMu.Lock()
@@ -256,6 +310,28 @@ func (wp *WorkerPool) handleWorkItem(ctx context.Context, logger *logr.Logger, i
 		Value: result,
 		Error: err,
 	})
+
+	event := ResolutionEvent{
+		Component:  item.Opts.Component,
+		Version:    item.Opts.Version,
+		Error:      err,
+		Requesters: requesters,
+	}
+
+	select {
+	case wp.eventChan <- event:
+		logger.V(1).Info("emitted resolution event",
+			"component", item.Opts.Component,
+			"version", item.Opts.Version,
+			"requesters", len(requesters))
+	default:
+		logger.Error(fmt.Errorf("event channel full"), "failed to emit resolution event, controllers will not be notified",
+			"component", item.Opts.Component,
+			"version", item.Opts.Version,
+			"requesters", len(requesters),
+			"channelCapacity", cap(wp.eventChan))
+		EventChannelDropsTotal.WithLabelValues(item.Opts.Component, item.Opts.Version).Inc()
+	}
 }
 
 // getComponentVersion performs the actual component version resolution.
