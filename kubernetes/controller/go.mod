@@ -258,7 +258,7 @@ require (
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mandelsoft/filepath v0.0.0-20240223090642-3e2777258aa3 // indirect
-	github.com/mandelsoft/logging v0.0.0-20240618075559-fdca28a87b0a // indirect
+	github.com/mandelsoft/logging v0.0.0-20260220094735-62d1006ceeb4 // indirect
 	github.com/mandelsoft/spiff v1.7.0-beta-7 // indirect
 	github.com/marstr/guid v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
