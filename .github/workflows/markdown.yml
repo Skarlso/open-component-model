@@ -138,6 +138,7 @@ jobs:
           dirs:
             - ./website/content
           baseUrl: "${BASEURL}"
+          modifiedFilesOnly: true
           replacementPatterns:
             - pattern: "^/"
               replacement: "${BASEURL}/"
