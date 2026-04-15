@@ -186,6 +186,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
         run: |
+          IMAGE_NAME="${IMAGE_NAME,,}"
           task docker-build/multi-arch \
             CONTROLLER_IMG="${IMAGE_NAME}:${VERSION}" \
             OCI_OUTPUT=tmp/oci/controller.tar
@@ -197,6 +198,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
         run: |
+          IMAGE_NAME="${IMAGE_NAME,,}"
           task helm/package VERSION="${VERSION}" APP_VERSION="${VERSION}" IMAGE_REPOSITORY="${IMAGE_NAME}"
 
       - name: Upload Artifacts
@@ -283,6 +285,7 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
           IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
         run: |
+          IMAGE_NAME="${IMAGE_NAME,,}"
           mkdir -p tmp/docker
           skopeo --override-arch amd64 --override-os linux copy \
             oci:tmp/oci-dir:${VERSION} \
@@ -392,7 +395,7 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
           IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
         run: |
-          oras cp --from-oci-layout tmp/oci-dir:${VERSION} ${IMAGE_NAME}:${VERSION}
+          oras cp --from-oci-layout tmp/oci-dir:${VERSION} ${IMAGE_NAME,,}:${VERSION}
 
       - name: Tag image with main floating tag
         if: ${{ env.REF == 'main' }}
@@ -400,7 +403,7 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
           IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
         run: |
-          oras tag "${IMAGE_NAME}:${VERSION}" "main"
+          oras tag "${IMAGE_NAME,,}:${VERSION}" "main"
 
       - name: Resolve image digest
         id: image-digest
@@ -408,7 +411,7 @@ jobs:
           IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
           VERSION: ${{ needs.build.outputs.version }}
         run: |
-          DIGEST=$(oras resolve "${IMAGE_NAME}:${VERSION}")
+          DIGEST=$(oras resolve "${IMAGE_NAME,,}:${VERSION}")
           echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Attest image
@@ -426,8 +429,9 @@ jobs:
           IMAGE_DIGEST: ${{ steps.image-digest.outputs.digest }}
           IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
         run: |
+          IMAGE_NAME="${IMAGE_NAME,,}"
           task helm/package VERSION="${VERSION}" APP_VERSION="${VERSION}" IMAGE_DIGEST="${IMAGE_DIGEST}" IMAGE_REPOSITORY="${IMAGE_NAME}"
-          task helm/push VERSION="${VERSION}" REGISTRY="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller"
+          task helm/push VERSION="${VERSION}" REGISTRY="${IMAGE_NAME}"
 
       - name: Tag chart with main floating tag
         if: ${{ env.REF == 'main' }}
@@ -435,15 +439,15 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
           CHART_REPO: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart
         run: |
-          oras tag "${CHART_REPO}:${VERSION}" "main"
+          oras tag "${CHART_REPO,,}:${VERSION}" "main"
 
       - name: Resolve chart digest
         id: chart-digest
         env:
           VERSION: ${{ needs.build.outputs.version }}
+          CHART_REPO: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart
         run: |
-          CHART_REPO="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart"
-          echo "digest=$(oras resolve ${CHART_REPO}:${VERSION})" >> "$GITHUB_OUTPUT"
+          echo "digest=$(oras resolve ${CHART_REPO,,}:${VERSION})" >> "$GITHUB_OUTPUT"
 
       - name: Attest chart
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4

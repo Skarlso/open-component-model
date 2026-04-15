@@ -212,7 +212,7 @@ jobs:
 
       # Define target repository path in environment
       - name: Set TARGET_REPO
-        run: echo "TARGET_REPO=${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/cli" >> "$GITHUB_ENV"
+        run: echo "TARGET_REPO=${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/cli" >> "$GITHUB_ENV"
 
       # Push the OCI layout as an image to GHCR
       - name: Push OCI image

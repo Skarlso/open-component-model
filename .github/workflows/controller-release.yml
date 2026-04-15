@@ -194,8 +194,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
         run: |
+          IMAGE_REPO="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller"
           gh attestation verify \
-            "oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller@${IMAGE_DIGEST}" \
+            "oci://${IMAGE_REPO,,}@${IMAGE_DIGEST}" \
             --repo "${{ github.repository }}"
 
       - name: Verify chart attestation
@@ -204,7 +205,7 @@ jobs:
           CHART_DIGEST: ${{ needs.build.outputs.chart_digest }}
         run: |
           CHART_REPO="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart"
-          gh attestation verify "oci://${CHART_REPO}@${CHART_DIGEST}" --repo "${{ github.repository }}"
+          gh attestation verify "oci://${CHART_REPO,,}@${CHART_DIGEST}" --repo "${{ github.repository }}"
 
   # ---------------------------------------------------------------------------
   # PROMOTE AND RELEASE FINAL - Promotes RC artifacts and creates final release
@@ -274,6 +275,7 @@ jobs:
           SET_LATEST: ${{ needs.prepare.outputs.set_latest }}
         run: |
           set -euo pipefail
+          IMAGE_REPO="${IMAGE_REPO,,}"
           oras tag "${IMAGE_REPO}:${RC_VERSION}" "${NEW_RELEASE_VERSION}"
           echo "✅ Tagged image: ${NEW_RELEASE_VERSION}"
           if [ "${SET_LATEST}" = "true" ]; then
@@ -306,6 +308,7 @@ jobs:
           IMAGE_REPOSITORY: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
         run: |
           set -euo pipefail
+          IMAGE_REPOSITORY="${IMAGE_REPOSITORY,,}"
           task helm/package VERSION="${VERSION}" APP_VERSION="${VERSION}" IMAGE_DIGEST="${IMAGE_DIGEST}" IMAGE_REPOSITORY="${IMAGE_REPOSITORY}"
 
       - name: Verify promote
@@ -338,16 +341,17 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.base_version }}
         run: |
           set -euo pipefail
-          task helm/push VERSION="${VERSION}" REGISTRY="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller"
+          REGISTRY="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller"
+          task helm/push VERSION="${VERSION}" REGISTRY="${REGISTRY,,}"
 
       - name: Resolve chart digest
         id: chart-digest
         env:
           VERSION: ${{ needs.prepare.outputs.base_version }}
+          CHART_REPO: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart
         run: |
           set -euo pipefail
-          CHART_REPO="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart"
-          echo "digest=$(oras resolve ${CHART_REPO}:${VERSION})" >> "$GITHUB_OUTPUT"
+          echo "digest=$(oras resolve ${CHART_REPO,,}:${VERSION})" >> "$GITHUB_OUTPUT"
 
       - name: Attest final chart
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4

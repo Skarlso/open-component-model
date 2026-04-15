@@ -223,6 +223,7 @@ jobs:
           IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
           TARGET_REPO: ${{ env.REGISTRY }}/${{ github.repository_owner }}/cli
         run: |
+          TARGET_REPO="${TARGET_REPO,,}"
           echo "Verifying OCI image attestation for ${TARGET_REPO}@${IMAGE_DIGEST}..."
           gh attestation verify "oci://${TARGET_REPO}@${IMAGE_DIGEST}" --repo "${{ github.repository }}"
           echo "✅ OCI image attestation verified"
@@ -305,6 +306,7 @@ jobs:
           TARGET_REPO: ${{ env.REGISTRY }}/${{ github.repository_owner }}/cli
           SET_LATEST: ${{ needs.prepare.outputs.set_latest }}
         run: |
+          TARGET_REPO="${TARGET_REPO,,}"
           if [ "$SET_LATEST" = "true" ]; then
             oras tag "${TARGET_REPO}:${RC_VERSION}" "${NEW_RELEASE_VERSION}" "latest"
             echo "✅ Tagged :${NEW_RELEASE_VERSION} and :latest"
