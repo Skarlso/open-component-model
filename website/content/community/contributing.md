@@ -166,6 +166,28 @@ To help your pull request move through review smoothly, keep these points in min
 - **Backwards compatibility** - If your change affects a public API or CLI command, call it out in the PR description so
   reviewers can evaluate the impact.
 
+## Working with LLMs
+
+LLMs are useful. For sketching code, exploring an unfamiliar API, or untangling a tricky bug, they can save real
+time, and we are not against them. What we care about is that whatever lands in a pull request or an issue came
+from a person who actually thought about it.
+
+OCM is a _community_ before it is a codebase. Reviews, design discussions and bug reports are conversations between
+people, and a pull request is the start of one. When you contribute:
+
+- Read what the model produced. Make sure it works, fits the patterns already in the code, and says something you
+  actually want to say.
+- Trim the boilerplate. Generic explanations, over-formal language, and comments that restate the obvious are
+  tells, and they make review harder for everyone.
+- Add your own context. _Why_ you did it the way you did. Don't rely on the automated tools summary for this.
+
+The same applies to issues. Using an LLM in the background to think through a bug or shape a feature request is
+fine. But the issue itself, and especially the replies in the thread, should come from you. A discussion full of
+generated comments stops being a discussion between people.
+
+Quality and engagement. Not volume. If a contribution reads as slop, a reviewer will say so. That
+is part of how the community stays a community.
+
 ## Guideline for AI-Generated Code Contributions
 
 As artificial intelligence evolves, AI-generated code is becoming valuable for many software projects, including
