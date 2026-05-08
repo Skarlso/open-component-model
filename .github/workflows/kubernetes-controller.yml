@@ -38,9 +38,10 @@ env:
 permissions:
   contents: read # for actions/checkout to fetch code
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+# No concurrency block: this workflow is workflow_call-only. The caller
+# (pipeline.yml) controls concurrency for the whole chain. Declaring our own
+# would deadlock on `Pipeline-<ref>` because github.workflow inherits the
+# caller's name in workflow_call context.
 
 jobs:
   verify-chart:
