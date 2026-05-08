@@ -2,6 +2,11 @@
 import fs from "fs";
 import path from "path";
 
+// GitHub's release body has a hard limit of 125000 chars. We use 120000 to
+// leave headroom for the RC→final header rewrite and any future additions.
+const MAX_RELEASE_BODY_LENGTH = 120000;
+const TRUNCATION_NOTICE = "\n\n---\n\n*Release notes truncated to fit GitHub's 125000-character body limit. See the source changelog or `git log` for the complete history.*";
+
 // --------------------------
 // Helpers
 // --------------------------
@@ -40,16 +45,25 @@ export function prepareReleaseNotes(notesFile, rcTag, newReleaseTag) {
   const escapedRcTag = rcTag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const rcHeaderPattern = new RegExp(`^## \\[${escapedRcTag}\\].*$`, "m");
 
-  if (!rcHeaderPattern.test(notes)) {
-    // If no RC header found, prepend a final header instead of failing.
-    // This handles edge cases like manually edited release notes.
-    return `## [${newReleaseTag}] - promoted from [${rcTag}] on ${today}\n\n${notes}`;
+  if (rcHeaderPattern.test(notes)) {
+    notes = notes.replace(
+      rcHeaderPattern,
+      `## [${newReleaseTag}] - promoted from [${rcTag}] on ${today}`,
+    );
+  } else {
+    // No RC header found — prepend a final header instead of failing.
+    // Handles edge cases like manually edited release notes.
+    notes = `## [${newReleaseTag}] - promoted from [${rcTag}] on ${today}\n\n${notes}`;
   }
 
-  return notes.replace(
-    rcHeaderPattern,
-    `## [${newReleaseTag}] - promoted from [${rcTag}] on ${today}`,
-  );
+  // GitHub rejects release bodies > 125000 chars. Truncate with a notice if
+  // the content (typical for first-release-on-fresh-stream changelogs) tips over.
+  if (notes.length > MAX_RELEASE_BODY_LENGTH) {
+    const safeLength = MAX_RELEASE_BODY_LENGTH - TRUNCATION_NOTICE.length;
+    notes = notes.substring(0, safeLength) + TRUNCATION_NOTICE;
+  }
+
+  return notes;
 }
 
 /**
