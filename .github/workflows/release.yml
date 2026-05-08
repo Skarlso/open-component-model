@@ -174,7 +174,9 @@ jobs:
           ref: ${{ github.ref_name }}
           token: ${{ steps.get_token.outputs.token }}
           fetch-tags: true
-          persist-credentials: false
+          # persist-credentials kept (intentionally) — create-tag.js does
+          # `git push origin refs/tags/...` which needs the app token persisted
+          # in .git/config to authenticate. Zizmor flags this; accepted.
 
       - name: Setup git config
         env:
@@ -417,7 +419,9 @@ jobs:
           ref: ${{ github.ref_name }}
           token: ${{ steps.get_token.outputs.token }}
           fetch-tags: true
-          persist-credentials: false
+          # persist-credentials kept (intentionally) — create-tag.js does
+          # `git push origin refs/tags/...` which needs the app token persisted
+          # in .git/config to authenticate. Zizmor flags this; accepted.
 
       - name: Setup git config
         env:
