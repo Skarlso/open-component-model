@@ -718,12 +718,14 @@ struct
 structs
 subchart
 subcharts
+subfolder
 subfolders
 subheadline
 subpath
 subpaths
 subprocess
 subprocesses
+subproject
 subresource
 subsitution
 subst

@@ -1,18 +1,3 @@
-## Contents
-
-- [Contributing to an OCM SIG](#contributing-to-an-ocm-sig)
-    * [Before You Start](#before-you-start)
-    * [Ways to Participate](#ways-to-participate)
-    * [Communication](#communication)
-    * [Meetings and Ceremonies](#meetings-and-ceremonies)
-    * [Becoming a Maintainer or Voting Member](#becoming-a-maintainer-or-voting-member)
-    * [Proposing Changes to a SIG](#proposing-changes-to-a-sig)
-        + [Charter or scope change](#charter-or-scope-change)
-        + [New SIG](#new-sig)
-        + [Broad technical decisions](#broad-technical-decisions)
-    * [Code of Conduct](#code-of-conduct)
-    * [Need Help?](#need-help)
-
 # Contributing to an OCM SIG
 
 Welcome, and thanks for your interest in joining one of the Open Component Model (OCM) Special Interest Groups (SIG).
@@ -21,6 +6,20 @@ help you navigate the processes around this SIG.
 
 This guide covers participation in the SIG itself. For contributing **code** to OCM repositories see the [Open Component Model Contribution Guidelines](https://github.com/open-component-model/.github/blob/main/CONTRIBUTING.md).
 For the formal governance rules, see the [SIG Handbook](./SIG-Handbook.md).
+
+## Contents
+
+- [Before You Start](#before-you-start)
+- [Ways to Participate](#ways-to-participate)
+- [Communication](#communication)
+- [Meetings and Ceremonies](#meetings-and-ceremonies)
+- [Becoming a Maintainer or Voting Member](#becoming-a-maintainer-or-voting-member)
+- [Proposing Changes to a SIG](#proposing-changes-to-a-sig)
+  - [Charter or scope change](#charter-or-scope-change)
+  - [New SIG](#new-sig)
+  - [Broad technical decisions](#broad-technical-decisions)
+- [Code of Conduct](#code-of-conduct)
+- [Need Help?](#need-help)
 
 ## Before You Start
 
@@ -48,12 +47,12 @@ There is no single ladder. Pick the entry points that fit how you want to contri
 
 Each SIG lists its channels in [`sigs.yaml`](./sigs.yaml) and in its charter. The OCM-wide channels are:
 
-| Channel | Where |
-|--------|-------|
-| Zulip | [neonephos-ocm-support](https://linuxfoundation.zulipchat.com/#narrow/channel/532975-neonephos-ocm-support) |
-| Mailing list | `open-component-model-sig-<sig-name>@lists.neonephos.org` |
-| GitHub | [open-component-model](https://github.com/open-component-model) |
-| Community page | [ocm.software/community](https://ocm.software/community/engagement) |
+| Channel        | Where                                                                                                       |
+|----------------|-------------------------------------------------------------------------------------------------------------|
+| Zulip          | [neonephos-ocm-support](https://linuxfoundation.zulipchat.com/#narrow/channel/532975-neonephos-ocm-support) |
+| Mailing list   | `open-component-model-sig-<sig-name>@lists.neonephos.org`                                                   |
+| GitHub         | [open-component-model](https://github.com/open-component-model)                                             |
+| Community page | [ocm.software/community](https://ocm.software/community)                                                    |
 
 For SIG-specific channels (per-SIG mailing list, dedicated meetings), see the SIG's own folder under [`docs/community/SIGs/`](.).
 
@@ -61,11 +60,13 @@ For SIG-specific channels (per-SIG mailing list, dedicated meetings), see the SI
 
 OCM runs a monthly community call that all SIGs participate in. Cadence and links are listed per SIG.
 
-| Ceremony | Cadence | Link | Notes |
-|----------|---------|------|-------|
-| OCM Community Call | Monthly | [Engagement page](https://ocm.software/community/engagement/#community-calls) | Shared across all SIGs. Recordings in [`docs/community/README.md`](../README.md). |
-| SIG-specific meeting | _see SIG charter_ | _see SIG charter_ | Optional, defined per SIG. |
-| TSC meeting | _see steering folder_ | [TSC notes](../../steering/meeting-notes) | Charter approvals and major decisions. |
+TODO: Link to OCM community Call.
+
+| Ceremony             | Cadence               | Link                                              | Notes                                                                             |
+|----------------------|-----------------------|---------------------------------------------------|-----------------------------------------------------------------------------------|
+| OCM Community Call   | Monthly               | [Engagement page](https://ocm.software/community) | Shared across all SIGs. Recordings in [`docs/community/README.md`](../README.md). |
+| SIG-specific meeting | _see SIG charter_     | _see SIG charter_                                 | Optional, defined per SIG.                                                        |
+| TSC meeting          | _see steering folder_ | [TSC notes](../../steering/meeting-notes)         | Charter approvals and major decisions.                                            |
 
 Meeting notes go into the SIG's `meeting-notes/` subfolder. Public, dated, one file per meeting.
 
@@ -90,7 +91,6 @@ Major changes require a two-thirds supermajority of voting members and TSC appro
 ### New SIG
 
 Follow [Section 2.3 of the Handbook](./SIG-Handbook.md#23-sig-creation--charter-requirements).
-
 
 ### Broad technical decisions
 
