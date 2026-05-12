@@ -17,31 +17,19 @@ import (
 	"ocm.software/open-component-model/bindings/go/runtime"
 )
 
-// CredentialKey constants define the standard keys used in credential maps.
-// These keys are used to store and retrieve different types of credentials.
+// Credential key constants re-exported from the typed credential package for backward compatibility.
 const (
-	// CredentialKeyUsername is the key for storing username credentials
-	CredentialKeyUsername = "username"
-	// CredentialKeyPassword is the key for storing password credentials
-	CredentialKeyPassword = "password"
-	// CredentialKeyAccessToken is the key for storing access token credentials
-	CredentialKeyAccessToken = "accessToken"
-	// CredentialKeyRefreshToken is the key for storing refresh token credentials
-	CredentialKeyRefreshToken = "refreshToken"
-
-	// LegacyCredentialKeyAccessToken is the legacy snake_case key for access tokens.
-	//
-	// Deprecated: Use CredentialKeyAccessToken instead. The removal of this key is tracked here: https://github.com/open-component-model/ocm-project/issues/1037
-	LegacyCredentialKeyAccessToken = "access_token"
-	// LegacyCredentialKeyRefreshToken is the legacy snake_case key for refresh tokens.
-	//
-	// Deprecated: Use CredentialKeyRefreshToken instead. The removal of this key is tracked here: https://github.com/open-component-model/ocm-project/issues/1037
-	LegacyCredentialKeyRefreshToken = "refresh_token"
+	// CredentialKeyUsername is the key for basic auth username.
+	CredentialKeyUsername = credentialsv1.CredentialKeyUsername
+	// CredentialKeyPassword is the key for basic auth password.
+	CredentialKeyPassword = credentialsv1.CredentialKeyPassword
+	// CredentialKeyAccessToken is the key for OAuth2/bearer access tokens.
+	CredentialKeyAccessToken = credentialsv1.CredentialKeyAccessToken
+	// CredentialKeyRefreshToken is the key for OAuth2 refresh tokens.
+	CredentialKeyRefreshToken = credentialsv1.CredentialKeyRefreshToken
 )
 
 // CredentialFromMap converts a credential map to an auth.Credential.
-// It supports both canonical camelCase keys and legacy snake_case keys for token fields,
-// with camelCase taking precedence.
 func CredentialFromMap(credentials map[string]string) auth.Credential {
 	cred := auth.Credential{}
 	if v, ok := credentials[CredentialKeyUsername]; ok {
@@ -52,12 +40,8 @@ func CredentialFromMap(credentials map[string]string) auth.Credential {
 	}
 	if v, ok := credentials[CredentialKeyAccessToken]; ok {
 		cred.AccessToken = v
-	} else if v, ok := credentials[LegacyCredentialKeyAccessToken]; ok {
-		cred.AccessToken = v
 	}
 	if v, ok := credentials[CredentialKeyRefreshToken]; ok {
-		cred.RefreshToken = v
-	} else if v, ok := credentials[LegacyCredentialKeyRefreshToken]; ok {
 		cred.RefreshToken = v
 	}
 	return cred
