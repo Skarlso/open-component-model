@@ -25,7 +25,7 @@ For the formal governance rules, see the [SIG Handbook](./SIG-Handbook.md).
 
 1. Read the [SIG Handbook](./SIG-Handbook.md) for governance and lifecycle rules.
 2. Browse [`sigs.yaml`](./sigs.yaml) and pick the SIG whose scope matches your interest. Each SIG has its own folder with a charter and meeting notes.
-3. Skim the relevant SIG charter so you know what is in scope and what is not.
+3. Skim the [SIG Runtime charter](./Runtime/SIG-Runtime-CHARTER.md) so you know what is in scope and what is not.
 4. Join the communication channels listed for that SIG (see [Communication](#communication)).
 5. Read the [OCM Code of Conduct](https://github.com/open-component-model/.github/blob/main/CODE_OF_CONDUCT.md). It applies to every interaction.
 
@@ -45,28 +45,24 @@ There is no single ladder. Pick the entry points that fit how you want to contri
 
 ## Communication
 
-Each SIG lists its channels in [`sigs.yaml`](./sigs.yaml) and in its charter. The OCM-wide channels are:
+SIG Runtime's channels are listed in the [SIG Runtime charter](./Runtime/SIG-Runtime-CHARTER.md#communication). The OCM-wide channels are:
 
 | Channel        | Where                                                                                                       |
 |----------------|-------------------------------------------------------------------------------------------------------------|
 | Zulip          | [neonephos-ocm-support](https://linuxfoundation.zulipchat.com/#narrow/channel/532975-neonephos-ocm-support) |
-| Mailing list   | `open-component-model-sig-<sig-name>@lists.neonephos.org`                                                   |
+| Mailing list   | `open-component-model-sig-runtime@lists.neonephos.org`                                                      |
 | GitHub         | [open-component-model](https://github.com/open-component-model)                                             |
 | Community page | [ocm.software/community](https://ocm.software/community)                                                    |
-
-For SIG-specific channels (per-SIG mailing list, dedicated meetings), see the SIG's own folder under [`docs/community/SIGs/`](.).
 
 ## Meetings and Ceremonies
 
 OCM runs a monthly community call that all SIGs participate in. Cadence and links are listed per SIG.
 
-TODO: Link to OCM community Call.
-
-| Ceremony             | Cadence               | Link                                              | Notes                                                                             |
-|----------------------|-----------------------|---------------------------------------------------|-----------------------------------------------------------------------------------|
-| OCM Community Call   | Monthly               | [Engagement page](https://ocm.software/community) | Shared across all SIGs. Recordings in [`docs/community/README.md`](../README.md). |
-| SIG-specific meeting | _see SIG charter_     | _see SIG charter_                                 | Optional, defined per SIG.                                                        |
-| TSC meeting          | _see steering folder_ | [TSC notes](../../steering/meeting-notes)         | Charter approvals and major decisions.                                            |
+| Ceremony            | Cadence                   | Link                                                                                                                           | Notes                                                                             |
+|---------------------|---------------------------|--------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| OCM Community Call  | Monthly                   | [Community calls](https://ocm.software/community/#community-calls)                                                             | Shared across all SIGs. Recordings in [`docs/community/README.md`](../README.md). |
+| SIG Runtime meeting | Every month 1st Wednesday | [Zoom Invite](https://zoom-lfx.platform.linuxfoundation.org/meeting/97987153840?password=fe2c3bf0-6a99-4e75-b62d-f1918154254e) | Working session for SIG Runtime topics. Open to all contributors.                 |
+| TSC meeting         | Every month 1st Monday    | [TSC notes](../../steering/meeting-notes)                                                                                      | Charter approvals and major decisions.                                            |
 
 Meeting notes go into the SIG's `meeting-notes/` subfolder. Public, dated, one file per meeting.
 
@@ -85,7 +81,7 @@ Voting rights may lapse after extended inactivity. The full rules, including quo
 
 ### Charter or scope change
 
-Open a PR against the SIG's charter. Add the change to the next TSC agenda.
+Open a PR against the [SIG Runtime charter](./Runtime/SIG-Runtime-CHARTER.md). Add the change to the next TSC agenda.
 Major changes require a two-thirds supermajority of voting members and TSC approval.
 
 ### New SIG
@@ -102,5 +98,4 @@ All participation is governed by the [OCM Code of Conduct](https://github.com/op
 
 ## Need Help?
 
-Ask in [Zulip](https://linuxfoundation.zulipchat.com/#narrow/channel/532975-neonephos-ocm-support), on the SIG mailing list, or at the next community call. The Chair and Tech Lead listed in each
-SIG's charter are the right first contacts.
+Ask in [Zulip](https://linuxfoundation.zulipchat.com/#narrow/channel/532975-neonephos-ocm-support), on the SIG mailing list, or at the next community call. The Chair and Tech Lead listed in the [SIG Runtime charter](./Runtime/SIG-Runtime-CHARTER.md#roles) are the right first contacts.
