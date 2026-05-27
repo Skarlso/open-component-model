@@ -215,7 +215,7 @@ jobs:
           RC_TAG: ${{ needs.prepare.outputs.new_tag }}
         run: |
           gh release download "$RC_TAG" \
-            --repo "skarlso/cli" \
+            --repo "skarlso/open-component-model" \
             --pattern "ocm-*" \
             --dir "${{ runner.temp }}/binaries"
 
@@ -225,7 +225,7 @@ jobs:
         run: |
           for file in ${{ runner.temp }}/binaries/ocm-*; do
             echo "Verifying $(basename "$file")..."
-            gh attestation verify "$file" --repo "skarlso/cli"
+            gh attestation verify "$file" --repo "skarlso/open-component-model"
           done
           echo "✅ All binary attestations verified"
 
@@ -233,10 +233,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
-          TARGET_REPO: ${{ env.REGISTRY }}/skarlso/cli
+          TARGET_REPO: ${{ env.REGISTRY }}/skarlso/open-component-model
         run: |
           echo "Verifying OCI image attestation for ${TARGET_REPO}@${IMAGE_DIGEST}..."
-          gh attestation verify "oci://${TARGET_REPO}@${IMAGE_DIGEST}" --repo "skarlso/cli"
+          gh attestation verify "oci://${TARGET_REPO}@${IMAGE_DIGEST}" --repo "skarlso/open-component-model"
           echo "✅ OCI image attestation verified"
 
   # ---------------------------------------------------------
@@ -296,7 +296,7 @@ jobs:
         env:
           RC_VERSION: ${{ needs.prepare.outputs.new_version }}
           NEW_RELEASE_VERSION: ${{ needs.prepare.outputs.base_version }}
-          TARGET_REPO: ${{ env.REGISTRY }}/skarlso/cli
+          TARGET_REPO: ${{ env.REGISTRY }}/skarlso/open-component-model
           SET_LATEST: ${{ needs.prepare.outputs.set_latest }}
         run: |
           if [ "$SET_LATEST" = "true" ]; then
@@ -335,7 +335,7 @@ jobs:
           RC_TAG: ${{ needs.prepare.outputs.new_tag }}
         run: |
           gh release download "$RC_TAG" \
-            --repo "skarlso/cli" \
+            --repo "skarlso/open-component-model" \
             --pattern "ocm-*" \
             --pattern "*.tar" \
             --dir "${{ runner.temp }}/assets"
@@ -346,7 +346,7 @@ jobs:
           RC_TAG: ${{ needs.prepare.outputs.new_tag }}
           NEW_RELEASE_TAG: ${{ needs.prepare.outputs.promotion_tag }}
           NEW_RELEASE_VERSION: ${{ needs.prepare.outputs.base_version }}
-          TARGET_REPO: ${{ env.REGISTRY }}/skarlso/cli
+          TARGET_REPO: ${{ env.REGISTRY }}/skarlso/open-component-model
           ASSETS_DIR: ${{ runner.temp }}/assets
           NOTES_FILE: ${{ runner.temp }}/CHANGELOG.md
           SET_LATEST: ${{ needs.prepare.outputs.set_latest }}
@@ -388,7 +388,7 @@ jobs:
             // Only set as latest if this version >= highest existing release version
             const created = await github.rest.repos.createRelease({
               owner: 'skarlso',
-              repo: 'cli',
+              repo: 'open-component-model',
               tag_name: newReleaseTag,
               name: `CLI ${newReleaseVersion}`,
               body: notes,
@@ -407,7 +407,7 @@ jobs:
               const data = fs.readFileSync(filePath);
               await github.rest.repos.uploadReleaseAsset({
                 owner: 'skarlso',
-                repo: 'cli',
+                repo: 'open-component-model',
                 release_id: created.data.id,
                 name: file,
                 data,

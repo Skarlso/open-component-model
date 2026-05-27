@@ -184,7 +184,7 @@ jobs:
         env:
           VERSION: ${{ needs.build.outputs.version }}
           OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
-          CLI_IMAGE: ghcr.io/skarlso/cli:main
+          CLI_IMAGE: ghcr.io/skarlso/open-component-model/cli:main
           WORKDIR: ${{ github.workspace }}/bindings/go/helm/tmp
         shell: bash
         run: |
@@ -208,7 +208,7 @@ jobs:
         env:
           VERSION: ${{ needs.build.outputs.version }}
           OCM_REPOSITORY: ${{ env.REPOSITORY_OWNER }}
-          CLI_IMAGE: ghcr.io/skarlso/cli:main
+          CLI_IMAGE: ghcr.io/skarlso/open-component-model/cli:main
           WORKDIR: ${{ github.workspace }}/bindings/go/helm/tmp
         shell: bash
         run: |

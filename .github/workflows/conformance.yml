@@ -115,7 +115,7 @@ jobs:
         if: ${{ inputs.cli_artifact != '' }}
         env:
           CLI_VERSION: ${{ inputs.cli_version }}
-          CLI_IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/cli
+          CLI_IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/open-component-model/cli
         run: |
           mkdir -p tmp/cli-oci-dir
           tar -xf tmp/cli-artifact/oci/cli.tar -C tmp/cli-oci-dir
@@ -138,7 +138,7 @@ jobs:
         if: ${{ inputs.toolkit_image_artifact != '' }}
         env:
           TOOLKIT_VERSION: ${{ inputs.toolkit_version }}
-          IMAGE_NAME: ${{ env.REGISTRY }}/${{ env.CONTROLLER_IMAGE_NAME }}
+          IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/open-component-model/${{ env.CONTROLLER_IMAGE_NAME }}
         run: |
           mkdir -p tmp/controller-oci-dir
           tar -xf tmp/controller-artifact/controller.tar -C tmp/controller-oci-dir

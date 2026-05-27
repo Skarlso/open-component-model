@@ -228,7 +228,7 @@ jobs:
 
       # Define target repository path in environment
       - name: Set TARGET_REPO
-        run: echo "TARGET_REPO=${REGISTRY}/skarlso/cli" >> "$GITHUB_ENV"
+        run: echo "TARGET_REPO=${REGISTRY}/skarlso/open-component-model" >> "$GITHUB_ENV"
 
       # Push the OCI layout as an image to GHCR
       - name: Push OCI image
@@ -253,7 +253,7 @@ jobs:
     needs: publish
     uses: ./.github/workflows/conformance.yml
     with:
-      cli_image: "ghcr.io/skarlso/cli:${{ needs.publish.outputs.image_tag }}@${{ needs.publish.outputs.image_digest }}"
+      cli_image: "ghcr.io/skarlso/open-component-model:${{ needs.publish.outputs.image_tag }}@${{ needs.publish.outputs.image_digest }}"
     secrets: inherit
 
   # Run conformance tests against the built image on PRs to main,
