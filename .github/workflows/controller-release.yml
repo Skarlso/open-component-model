@@ -155,7 +155,7 @@ jobs:
           script: |
             const release = await github.rest.repos.getReleaseByTag({
               owner: 'skarlso',
-              repo: 'kubernetes-controller',
+              repo: 'open-component-model',
               tag: process.env.RC_TAG,
             });
             const releaseUrl = release.data.html_url;
@@ -203,16 +203,16 @@ jobs:
           IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
         run: |
           gh attestation verify \
-            "oci://${{ env.REGISTRY }}/skarlso/kubernetes/controller@${IMAGE_DIGEST}" \
-            --repo "skarlso/kubernetes-controller"
+            "oci://${{ env.REGISTRY }}/skarlso/open-component-model/controller@${IMAGE_DIGEST}" \
+            --repo "skarlso/open-component-model"
 
       - name: Verify chart attestation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHART_DIGEST: ${{ needs.build.outputs.chart_digest }}
         run: |
-          CHART_REPO="${{ env.REGISTRY }}/skarlso/kubernetes/controller/chart"
-          gh attestation verify "oci://${CHART_REPO}@${CHART_DIGEST}" --repo "skarlso/kubernetes-controller"
+          CHART_REPO="${{ env.REGISTRY }}/skarlso/open-component-model/controller/chart"
+          gh attestation verify "oci://${CHART_REPO}@${CHART_DIGEST}" --repo "skarlso/open-component-model"
 
   # ---------------------------------------------------------------------------
   # PROMOTE AND RELEASE FINAL - Promotes RC artifacts and creates final release

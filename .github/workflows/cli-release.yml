@@ -168,7 +168,7 @@ jobs:
           script: |
             const release = await github.rest.repos.getReleaseByTag({
               owner: 'skarlso',
-              repo: 'cli',
+              repo: 'open-component-model',
               tag: process.env.RC_TAG,
             });
             const releaseUrl = release.data.html_url;
