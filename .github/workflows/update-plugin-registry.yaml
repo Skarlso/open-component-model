@@ -80,7 +80,7 @@ jobs:
 
       - name: OCM Plugin Repository
         run: |
-          echo "OCM_REPOSITORY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/plugins" >> $GITHUB_ENV
+          echo "OCM_REPOSITORY=ghcr.io/skarlso/plugins" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: npm ci

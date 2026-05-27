@@ -154,8 +154,8 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const release = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner: 'skarlso',
+              repo: 'kubernetes-controller',
               tag: process.env.RC_TAG,
             });
             const releaseUrl = release.data.html_url;
@@ -203,16 +203,16 @@ jobs:
           IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
         run: |
           gh attestation verify \
-            "oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller@${IMAGE_DIGEST}" \
-            --repo "${{ github.repository }}"
+            "oci://${{ env.REGISTRY }}/skarlso/kubernetes/controller@${IMAGE_DIGEST}" \
+            --repo "skarlso/kubernetes-controller"
 
       - name: Verify chart attestation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHART_DIGEST: ${{ needs.build.outputs.chart_digest }}
         run: |
-          CHART_REPO="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart"
-          gh attestation verify "oci://${CHART_REPO}@${CHART_DIGEST}" --repo "${{ github.repository }}"
+          CHART_REPO="${{ env.REGISTRY }}/skarlso/kubernetes/controller/chart"
+          gh attestation verify "oci://${CHART_REPO}@${CHART_DIGEST}" --repo "skarlso/kubernetes-controller"
 
   # ---------------------------------------------------------------------------
   # PROMOTE AND RELEASE FINAL - Promotes RC artifacts and creates final release
@@ -286,7 +286,7 @@ jobs:
         env:
           RC_VERSION: ${{ needs.prepare.outputs.new_version }}
           NEW_RELEASE_VERSION: ${{ needs.prepare.outputs.base_version }}
-          IMAGE_REPO: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_REPO: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
           SET_LATEST: ${{ needs.prepare.outputs.set_latest }}
         run: |
           set -euo pipefail
@@ -313,7 +313,7 @@ jobs:
         env:
           VERSION: ${{ needs.prepare.outputs.base_version }}
           IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
-          IMAGE_REPOSITORY: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_REPOSITORY: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
         run: |
           set -euo pipefail
           task helm/package VERSION="${VERSION}" APP_VERSION="${VERSION}" IMAGE_DIGEST="${IMAGE_DIGEST}" IMAGE_REPOSITORY="${IMAGE_REPOSITORY}"
@@ -358,7 +358,7 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.base_version }}
         run: |
           set -euo pipefail
-          task helm/push VERSION="${VERSION}" REGISTRY="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller"
+          task helm/push VERSION="${VERSION}" REGISTRY="${{ env.REGISTRY }}/skarlso/kubernetes/controller"
 
       - name: Resolve chart digest
         id: chart-digest
@@ -366,7 +366,7 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.base_version }}
         run: |
           set -euo pipefail
-          CHART_REPO="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart"
+          CHART_REPO="${{ env.REGISTRY }}/skarlso/kubernetes/controller/chart"
           echo "digest=$(oras resolve ${CHART_REPO}:${VERSION})" >> "$GITHUB_OUTPUT"
 
       - name: Attest final chart
@@ -374,7 +374,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           subject-digest: ${{ steps.chart-digest.outputs.digest }}
-          subject-name: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart
+          subject-name: ${{ env.REGISTRY }}/skarlso/kubernetes/controller/chart
           push-to-registry: true
 
       - name: Get RC release notes
@@ -402,9 +402,9 @@ jobs:
           COMPONENT_NAME: ${{ env.COMPONENT_NAME }}
           ASSETS_DIR: ${{ runner.temp }}/final-assets
           NOTES_FILE: ${{ runner.temp }}/CHANGELOG.md
-          IMAGE_REPO: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_REPO: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
           IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
-          CHART_REPO: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart
+          CHART_REPO: ${{ env.REGISTRY }}/skarlso/kubernetes/controller/chart
           SET_LATEST: ${{ needs.prepare.outputs.set_latest }}
           HIGHEST_PREVIOUS_RELEASE_VERSION: ${{ needs.prepare.outputs.highest_previous_release_version }}
         with:

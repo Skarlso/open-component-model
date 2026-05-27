@@ -47,7 +47,7 @@ on:
         value: ${{ jobs.publish.outputs.chart_artifact_name }}
 
 env:
-  LOCATION: "kubernetes/controller"
+  CHART_REPO="${{ env.REGISTRY }}/skarlso/kubernetes/controller/chart"
   REGISTRY: ghcr.io
   REF: ${{ inputs.ref || github.head_ref || github.ref_name }}
   ARTIFACT_NAME: ${{ inputs.artifact_name || 'controller-artifacts' }}
@@ -175,7 +175,7 @@ jobs:
         working-directory: ${{ env.LOCATION }}
         env:
           VERSION: ${{ steps.version.outputs.version }}
-          IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
         run: |
           task docker-build/multi-arch \
             CONTROLLER_IMG="${IMAGE_NAME}:${VERSION}" \
@@ -186,7 +186,7 @@ jobs:
         working-directory: ${{ env.LOCATION }}
         env:
           VERSION: ${{ steps.version.outputs.version }}
-          IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
         run: |
           task helm/package VERSION="${VERSION}" APP_VERSION="${VERSION}" IMAGE_REPOSITORY="${IMAGE_NAME}"
 
@@ -281,7 +281,7 @@ jobs:
         working-directory: ${{ env.LOCATION }}
         env:
           VERSION: ${{ needs.build.outputs.version }}
-          IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
         run: |
           mkdir -p tmp/docker
           skopeo --override-arch ${{ matrix.arch }} --override-os linux copy \
@@ -390,7 +390,7 @@ jobs:
         working-directory: ${{ env.LOCATION }}
         env:
           VERSION: ${{ needs.build.outputs.version }}
-          IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
         run: |
           oras cp --from-oci-layout tmp/oci-dir:${VERSION} ${IMAGE_NAME}:${VERSION}
 
@@ -398,14 +398,14 @@ jobs:
         if: ${{ env.REF == 'main' }}
         env:
           VERSION: ${{ needs.build.outputs.version }}
-          IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
         run: |
           oras tag "${IMAGE_NAME}:${VERSION}" "main"
 
       - name: Resolve image digest
         id: image-digest
         env:
-          IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           DIGEST=$(oras resolve "${IMAGE_NAME}:${VERSION}")
@@ -416,7 +416,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           subject-digest: ${{ steps.image-digest.outputs.digest }}
-          subject-name: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          subject-name: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
           push-to-registry: true
 
       - name: Package and push Helm chart
@@ -424,16 +424,16 @@ jobs:
         env:
           VERSION: ${{ needs.build.outputs.version }}
           IMAGE_DIGEST: ${{ steps.image-digest.outputs.digest }}
-          IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller
+          IMAGE_NAME: ${{ env.REGISTRY }}/skarlso/kubernetes/controller
         run: |
           task helm/package VERSION="${VERSION}" APP_VERSION="${VERSION}" IMAGE_DIGEST="${IMAGE_DIGEST}" IMAGE_REPOSITORY="${IMAGE_NAME}"
-          task helm/push VERSION="${VERSION}" REGISTRY="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller"
+          task helm/push VERSION="${VERSION}" REGISTRY="${{ env.REGISTRY }}/skarlso/kubernetes/controller"
 
       - name: Tag chart with main floating tag
         if: ${{ env.REF == 'main' }}
         env:
           VERSION: ${{ needs.build.outputs.version }}
-          CHART_REPO: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart
+          CHART_REPO: ${{ env.REGISTRY }}/skarlso/kubernetes/controller/chart
         run: |
           oras tag "${CHART_REPO}:${VERSION}" "main"
 
@@ -442,7 +442,7 @@ jobs:
         env:
           VERSION: ${{ needs.build.outputs.version }}
         run: |
-          CHART_REPO="${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart"
+          CHART_REPO="${{ env.REGISTRY }}/skarlso/kubernetes/controller/chart"
           echo "digest=$(oras resolve ${CHART_REPO}:${VERSION})" >> "$GITHUB_OUTPUT"
 
       - name: Attest chart
@@ -450,7 +450,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           subject-digest: ${{ steps.chart-digest.outputs.digest }}
-          subject-name: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kubernetes/controller/chart
+          subject-name: ${{ env.REGISTRY }}/skarlso/kubernetes/controller/chart
           push-to-registry: true
 
       - name: Upload chart artifact
@@ -467,5 +467,5 @@ jobs:
     needs: publish
     uses: ./.github/workflows/conformance.yml
     with:
-      toolkit_image: "oci://ghcr.io/${{ github.repository_owner }}/kubernetes/controller/chart:${{ needs.publish.outputs.chart_version }}"
+      toolkit_image: "oci://ghcr.io/skarlso/kubernetes/controller/chart:${{ needs.publish.outputs.chart_version }}"
     secrets: inherit
