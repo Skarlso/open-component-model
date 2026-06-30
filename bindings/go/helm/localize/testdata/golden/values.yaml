@@ -1,0 +1,8 @@
+podinfo:
+  image:
+    digest: sha256:abc123
+    repository: target.registry/library/podinfo
+  sidecar:
+    image:
+      digest: sha256:def456
+      repository: target.registry/library/podinfo-sidecar

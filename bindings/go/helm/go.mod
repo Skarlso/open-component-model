@@ -19,6 +19,7 @@ require (
 	ocm.software/open-component-model/bindings/go/repository v0.0.10
 	ocm.software/open-component-model/bindings/go/runtime v0.0.8
 	oras.land/oras-go/v2 v2.6.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -113,5 +114,4 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.21.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
-	sigs.k8s.io/yaml v1.6.0 // indirect
 )

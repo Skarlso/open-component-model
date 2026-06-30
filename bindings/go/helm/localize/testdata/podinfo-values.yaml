@@ -1,0 +1,13 @@
+replicaCount: 1
+image:
+  registry: ghcr.io
+  repository: stefanprodan/podinfo
+  tag: 6.11.1
+  pullPolicy: IfNotPresent
+sidecar:
+  image:
+    repository: stefanprodan/podinfo-sidecar
+    version: 1.2.3
+service:
+  type: ClusterIP
+  port: 9898
