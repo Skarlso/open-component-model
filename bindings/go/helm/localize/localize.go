@@ -48,8 +48,26 @@ type Localization struct {
 // and target repo and digest will come from the access spec that will have the
 // new location of the resource.
 func Scan(values map[string]any, mappings []ImageMapping) []Localization {
+	// Parse each source reference once. A mapping without a digest cannot pin an
+	// image, so it is dropped here rather than re-checked at every node.
+	parsed := make([]parsedMapping, 0, len(mappings))
+	for _, m := range mappings {
+		if m.Digest == "" {
+			continue
+		}
+		source, err := looseref.ParseReference(m.Source)
+		if err != nil {
+			continue
+		}
+		parsed = append(parsed, parsedMapping{
+			source:           source,
+			targetRepository: m.TargetRepository,
+			digest:           m.Digest,
+		})
+	}
+
 	var locs []Localization
-	walk(values, nil, mappings, &locs)
+	walk(values, nil, parsed, &locs)
 	// sort for determinism.
 	sort.Slice(locs, func(i, j int) bool {
 		return slices.Compare(locs[i].Path, locs[j].Path) < 0
@@ -57,8 +75,16 @@ func Scan(values map[string]any, mappings []ImageMapping) []Localization {
 	return locs
 }
 
+// parsedMapping is an ImageMapping with its source reference parsed once, ready
+// to be compared against many image blocks during the walk.
+type parsedMapping struct {
+	source           looseref.LooseReference
+	targetRepository string
+	digest           string
+}
+
 // walk is a basic dfs algo to traverse all possible locations for rewriting.
-func walk(node map[string]any, path []string, mappings []ImageMapping, out *[]Localization) {
+func walk(node map[string]any, path []string, mappings []parsedMapping, out *[]Localization) {
 	if loc, ok := matchImageBlock(node, path, mappings); ok {
 		*out = append(*out, loc) // append to out slice that keeps track of the dfs list
 	}
@@ -72,7 +98,7 @@ func walk(node map[string]any, path []string, mappings []ImageMapping, out *[]Lo
 
 // matchImageBlock reads the image fields from a values map node and, if they
 // resolve to a digest-pinned mapping, returns the override to apply.
-func matchImageBlock(node map[string]any, path []string, mappings []ImageMapping) (Localization, bool) {
+func matchImageBlock(node map[string]any, path []string, mappings []parsedMapping) (Localization, bool) {
 	// check to see if this node is an image block
 	repository, ok := node[keyRepository].(string)
 	if !ok || repository == "" {
@@ -82,16 +108,13 @@ func matchImageBlock(node map[string]any, path []string, mappings []ImageMapping
 	tag := stringField(node, keyTag, keyVersion)
 
 	for _, m := range mappings {
-		if m.Digest == "" {
-			continue
-		}
-		if !resolvesToResource(registry, repository, tag, m.Source) {
+		if !resolvesToResource(registry, repository, tag, m.source) {
 			continue
 		}
 		return Localization{
 			Path:       append([]string{}, path...),
-			Repository: m.TargetRepository,
-			Digest:     m.Digest,
+			Repository: m.targetRepository,
+			Digest:     m.digest,
 		}, true
 	}
 	return Localization{}, false
@@ -110,11 +133,7 @@ func stringField(node map[string]any, keys ...string) string {
 // at the same image as a transferred resource.
 // TODO: this might trip with multiple values of the same like app/main:1.0.0 and app/main:2.0.0
 // Unlikely, but still.. should probably be more intelligent here.
-func resolvesToResource(registry, repository, tag, source string) bool {
-	s, err := looseref.ParseReference(source)
-	if err != nil {
-		return false
-	}
+func resolvesToResource(registry, repository, tag string, s looseref.LooseReference) bool {
 	if repository != s.Repository {
 		return false
 	}
