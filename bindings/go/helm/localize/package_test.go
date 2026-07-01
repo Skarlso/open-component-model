@@ -21,11 +21,20 @@ func TestPackage(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pkg, err := localize.Package(context.Background(), wrapper, t.TempDir())
+	annotations := map[string]string{
+		"software.ocm/component":  "github.com/acme/podinfo:1.2.3",
+		"software.ocm/repository": "oci://source.registry",
+	}
+
+	pkg, err := localize.Package(context.Background(), wrapper, t.TempDir(), annotations)
 	require.NoError(t, err)
 	require.NotNil(t, pkg.Layout)
 	require.NotNil(t, pkg.Descriptor)
 	require.NotNil(t, pkg.ChartArchive)
+
+	// Provenance annotations must ride on the OCI manifest.
+	assert.Equal(t, "github.com/acme/podinfo:1.2.3", pkg.Descriptor.Annotations["software.ocm/component"])
+	assert.Equal(t, "oci://source.registry", pkg.Descriptor.Annotations["software.ocm/repository"])
 
 	rc, err := pkg.ChartArchive.ReadCloser()
 	require.NoError(t, err)

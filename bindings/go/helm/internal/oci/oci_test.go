@@ -54,7 +54,7 @@ func TestCopyChartToOCILayout_Success(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			chart := newReadOnlyChart(t, tt.path)
 
-			result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir())
+			result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir(), nil)
 			require.NoError(t, err)
 			require.NotNil(t, result)
 
@@ -116,7 +116,7 @@ func TestCopyChartToOCILayout_TagMatchesVersion(t *testing.T) {
 
 	chart := newReadOnlyChart(t, filepath.Join(testDataDir, "mychart-0.1.0.tgz"))
 
-	result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir())
+	result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir(), nil)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -138,7 +138,7 @@ func TestCopyChartToOCILayout_ConfigContent(t *testing.T) {
 
 	chart := newReadOnlyChart(t, filepath.Join(testDataDir, "mychart-0.1.0.tgz"))
 
-	result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir())
+	result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir(), nil)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -247,7 +247,7 @@ func TestCopyChartToOCILayout_Matrix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			chart := tt.chart(t)
-			result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir())
+			result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir(), nil)
 			require.NoError(t, err)
 			require.NotNil(t, result)
 			tt.check(t, result, chart)
@@ -277,7 +277,7 @@ func TestCopyChartToOCILayout_DigestsMatchContent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			chart := newReadOnlyChart(t, tt.path)
 
-			result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir())
+			result, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir(), nil)
 			require.NoError(t, err)
 			require.NotNil(t, result)
 
@@ -347,7 +347,7 @@ func TestCopyChartToOCILayout_NilChartBlobReturnsError(t *testing.T) {
 		ChartBlob: nil,
 	}
 
-	_, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir())
+	_, err := oci.CopyChartToOCILayout(ctx, chart, t.TempDir(), nil)
 	require.Error(t, err, "nil ChartBlob should cause an error")
 	assert.Contains(t, err.Error(), "chart blob must not be nil")
 }

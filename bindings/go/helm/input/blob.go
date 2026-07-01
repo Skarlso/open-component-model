@@ -100,7 +100,7 @@ func GetV1HelmBlob(ctx context.Context, helmSpec v1.Helm, tmpDir string, opts ..
 		Version:   chart.Version,
 		ChartBlob: chart.ChartBlob,
 		ProvBlob:  chart.ProvBlob,
-	}, tmpDir)
+	}, tmpDir, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error converting helm chart to OCI layout: %w", err)
 	}

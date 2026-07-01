@@ -26,7 +26,9 @@ type PackagedWrapper struct {
 
 // Package serializes a wrapper chart into a Helm .tgz and then into an OCI image
 // layout. tmpDir is passed in so the location remains configurable by .ocmconfig.
-func Package(ctx context.Context, wrapper *Wrapper, tmpDir string) (*PackagedWrapper, error) {
+// TODO: Annotations are used for backtracking for the component version for now.
+// TODO: Not going to deal with frigging Chart.lock file rn. :D
+func Package(ctx context.Context, wrapper *Wrapper, tmpDir string, annotations map[string]string) (*PackagedWrapper, error) {
 	chart := &chartv2.Chart{
 		Metadata: wrapper.Metadata,
 		Raw: []*chartcommon.File{
@@ -53,7 +55,7 @@ func Package(ctx context.Context, wrapper *Wrapper, tmpDir string) (*PackagedWra
 		Name:      wrapper.Metadata.Name,
 		Version:   wrapper.Metadata.Version,
 		ChartBlob: archive,
-	}, tmpDir)
+	}, tmpDir, annotations)
 	if err != nil {
 		return nil, fmt.Errorf("convert wrapper chart to OCI layout: %w", err)
 	}

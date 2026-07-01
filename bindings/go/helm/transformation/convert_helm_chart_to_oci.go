@@ -94,7 +94,7 @@ func (t *ConvertHelmChartToOCI) Transform(ctx context.Context, step runtime.Type
 		Version:   helmAccess.GetVersion(),
 		ChartBlob: chartSpec,
 		ProvBlob:  provSpec,
-	}, transformation.Spec.OutputPath)
+	}, transformation.Spec.OutputPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OCI layout from helm chart: %w", err)
 	}

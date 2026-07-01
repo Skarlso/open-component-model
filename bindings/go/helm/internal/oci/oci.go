@@ -31,7 +31,8 @@ type Result struct {
 // The result is tagged with the helm chart version.
 // The OCI layout is written to a temporary file in dir and returned as a file-backed blob.
 // See also: https://github.com/helm/community/blob/main/hips/hip-0006.md#2-support-for-provenance-files
-func CopyChartToOCILayout(ctx context.Context, chart *internal.ChartData, dir string) (*Result, error) {
+// TODO: Wondering if this is the right place to pass in our Annotations.
+func CopyChartToOCILayout(ctx context.Context, chart *internal.ChartData, dir string, manifestAnnotations map[string]string) (*Result, error) {
 	tmpFile, err := os.CreateTemp(dir, "oci-layout-*.tar.gz")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp file for OCI layout: %w", err)
@@ -60,8 +61,9 @@ func CopyChartToOCILayout(ctx context.Context, chart *internal.ChartData, dir st
 
 	// Create OCI image manifest.
 	imgDesc, err := oras.PackManifest(ctx, target, oras.PackManifestVersion1_1, "", oras.PackManifestOptions{
-		ConfigDescriptor: configLayer,
-		Layers:           layers,
+		ConfigDescriptor:    configLayer,
+		Layers:              layers,
+		ManifestAnnotations: manifestAnnotations,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OCI image manifest: %w", err)
