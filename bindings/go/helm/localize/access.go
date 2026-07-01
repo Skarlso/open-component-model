@@ -10,7 +10,7 @@ import (
 )
 
 // NewImageMapping builds an ImageMapping from a source and a target OCIImage.
-func NewImageMapping(source string, target *accessv1.OCIImage) (ImageMapping, error) {
+func NewImageMapping(source, target *accessv1.OCIImage) (ImageMapping, error) {
 	ref, err := looseref.ParseReference(target.ImageReference)
 	if err != nil {
 		return ImageMapping{}, fmt.Errorf("parse target reference %q: %w", target.ImageReference, err)
@@ -27,7 +27,7 @@ func NewImageMapping(source string, target *accessv1.OCIImage) (ImageMapping, er
 	}
 
 	return ImageMapping{
-		Source:           source,
+		Source:           source.ImageReference,
 		TargetRepository: repository,
 		Digest:           dgst,
 	}, nil
