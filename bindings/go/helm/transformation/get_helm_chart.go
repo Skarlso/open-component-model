@@ -53,7 +53,7 @@ func (t *GetHelmChart) Transform(ctx context.Context, step runtime.Typed) (runti
 
 	targetResource := descriptor.ConvertFromV2Resource(transformation.Spec.Resource)
 
-	creds, err := t.resolveCredentials(ctx, targetResource)
+	creds, err := resolveCredentials(ctx, t.ResourceRepository, t.CredentialProvider, targetResource)
 	if err != nil {
 		return nil, err
 	}
@@ -111,21 +111,21 @@ func (t *GetHelmChart) Transform(ctx context.Context, step runtime.Typed) (runti
 	return &transformation, nil
 }
 
-// resolveCredentials returns credentials for downloading targetResource, or nil if
+// resolveCredentials returns credentials for accessing targetResource, or nil if
 // no credential provider is configured or the resource has no consumer identity.
 // An ErrNotFound from the resolver is treated as "no credentials" rather than an error.
-func (t *GetHelmChart) resolveCredentials(ctx context.Context, targetResource *descriptor.Resource) (runtime.Typed, error) {
-	if t.CredentialProvider == nil {
+func resolveCredentials(ctx context.Context, repo repository.ResourceRepository, provider credentials.Resolver, targetResource *descriptor.Resource) (runtime.Typed, error) {
+	if provider == nil {
 		return nil, nil
 	}
-	consumerId, err := t.ResourceRepository.GetResourceCredentialConsumerIdentity(ctx, targetResource)
+	consumerId, err := repo.GetResourceCredentialConsumerIdentity(ctx, targetResource)
 	if err != nil {
 		return nil, fmt.Errorf("failed getting resource consumer identity for credential resolution: %w", err)
 	}
 	if consumerId == nil {
 		return nil, nil
 	}
-	typed, err := t.CredentialProvider.Resolve(ctx, consumerId)
+	typed, err := provider.Resolve(ctx, consumerId)
 	if err != nil {
 		if errors.Is(err, credentials.ErrNotFound) {
 			return nil, nil

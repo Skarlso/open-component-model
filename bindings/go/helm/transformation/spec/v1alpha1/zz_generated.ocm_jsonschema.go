@@ -18,6 +18,15 @@ var schemaConvertHelmToOCIOutput []byte
 //go:embed schemas/ConvertHelmToOCISpec.schema.json
 var schemaConvertHelmToOCISpec []byte
 
+//go:embed schemas/GenerateHelmWrapper.schema.json
+var schemaGenerateHelmWrapper []byte
+
+//go:embed schemas/GenerateHelmWrapperOutput.schema.json
+var schemaGenerateHelmWrapperOutput []byte
+
+//go:embed schemas/GenerateHelmWrapperSpec.schema.json
+var schemaGenerateHelmWrapperSpec []byte
+
 //go:embed schemas/GetHelmChart.schema.json
 var schemaGetHelmChart []byte
 
@@ -26,6 +35,9 @@ var schemaGetHelmChartOutput []byte
 
 //go:embed schemas/GetHelmChartSpec.schema.json
 var schemaGetHelmChartSpec []byte
+
+//go:embed schemas/ImagePair.schema.json
+var schemaImagePair []byte
 
 // JSONSchema returns the JSON Schema for ConvertHelmToOCI.
 func (ConvertHelmToOCI) JSONSchema() []byte {
@@ -42,6 +54,21 @@ func (ConvertHelmToOCISpec) JSONSchema() []byte {
 	return schemaConvertHelmToOCISpec
 }
 
+// JSONSchema returns the JSON Schema for GenerateHelmWrapper.
+func (GenerateHelmWrapper) JSONSchema() []byte {
+	return schemaGenerateHelmWrapper
+}
+
+// JSONSchema returns the JSON Schema for GenerateHelmWrapperOutput.
+func (GenerateHelmWrapperOutput) JSONSchema() []byte {
+	return schemaGenerateHelmWrapperOutput
+}
+
+// JSONSchema returns the JSON Schema for GenerateHelmWrapperSpec.
+func (GenerateHelmWrapperSpec) JSONSchema() []byte {
+	return schemaGenerateHelmWrapperSpec
+}
+
 // JSONSchema returns the JSON Schema for GetHelmChart.
 func (GetHelmChart) JSONSchema() []byte {
 	return schemaGetHelmChart
@@ -55,4 +82,9 @@ func (GetHelmChartOutput) JSONSchema() []byte {
 // JSONSchema returns the JSON Schema for GetHelmChartSpec.
 func (GetHelmChartSpec) JSONSchema() []byte {
 	return schemaGetHelmChartSpec
+}
+
+// JSONSchema returns the JSON Schema for ImagePair.
+func (ImagePair) JSONSchema() []byte {
+	return schemaImagePair
 }
