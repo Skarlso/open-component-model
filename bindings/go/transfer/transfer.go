@@ -43,6 +43,11 @@ func BuildGraphDefinition(
 		resolved.UploadType = transferv1alpha1.UploadAsDefault
 	}
 
+	if resolved.Localize && (resolved.CopyMode != transferv1alpha1.CopyModeAllResources || resolved.UploadType != transferv1alpha1.UploadAsOciArtifact) {
+		return nil, fmt.Errorf("localize requires copyMode %q and uploadType %q, got copyMode %q and uploadType %q",
+			transferv1alpha1.CopyModeAllResources, transferv1alpha1.UploadAsOciArtifact, resolved.CopyMode, resolved.UploadType)
+	}
+
 	roots, err := collectTransferRoots(ctx, mappings)
 	if err != nil {
 		return nil, err

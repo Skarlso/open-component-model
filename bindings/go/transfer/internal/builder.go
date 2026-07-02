@@ -91,6 +91,11 @@ func NewDefaultBuilder(
 	convertHelmToOCI := &helmtransformer.ConvertHelmChartToOCI{
 		Scheme: transformerScheme,
 	}
+	generateHelmWrapper := &helmtransformer.GenerateHelmWrapper{
+		Scheme:             transformerScheme,
+		Repository:         resourceRepo,
+		CredentialProvider: credentialProvider,
+	}
 
 	// File cleanup transformer
 	transformerScheme.MustRegisterWithAlias(&FileCleanupTransformation{}, FileCleanupVersionedType)
@@ -112,5 +117,6 @@ func NewDefaultBuilder(
 		WithTransformer(&ociv1alpha1.TransferOCIArtifact{}, ociTransferOCIArtifact).
 		WithTransformer(&helmv1alpha1.GetHelmChart{}, getHelmChart).
 		WithTransformer(&helmv1alpha1.ConvertHelmToOCI{}, convertHelmToOCI).
+		WithTransformer(&helmv1alpha1.GenerateHelmWrapper{}, generateHelmWrapper).
 		WithTransformer(&FileCleanupTransformation{}, fileCleanup)
 }

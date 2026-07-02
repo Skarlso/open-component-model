@@ -242,6 +242,93 @@ func TestBuildGraphDefinition_HelmResource(t *testing.T) {
 	assert.Equal(t, helmv1alpha1.ConvertHelmToOCIV1alpha1, tgd.Transformations[1].Type)
 }
 
+func TestBuildGraphDefinition_Localize(t *testing.T) {
+	sourceRepo := testOCIRepo("ghcr.io/source")
+	targetRepo := testOCIRepo("ghcr.io/target")
+	desc := testDescriptor("ocm.software/test", "1.0.0",
+		[]descriptor.Resource{
+			helmResource("my-chart", "1.0.0", "https://charts.example.com", "my-chart"),
+			ociImageResource("my-image", "1.0.0", "ghcr.io/org/image:v1"),
+		}, nil)
+	resolver := testResolverFor("ocm.software/test", "1.0.0", sourceRepo, desc)
+	roots := testTransferRoots("ocm.software/test", "1.0.0", targetRepo, resolver)
+
+	cfg := transferv1alpha1.Config{
+		CopyMode:   transferv1alpha1.CopyModeAllResources,
+		UploadType: transferv1alpha1.UploadAsOciArtifact,
+		Localize:   true,
+	}
+	tgd, err := BuildGraphDefinition(t.Context(), roots, cfg)
+	require.NoError(t, err)
+
+	var wrap *transformv1alpha1.GenericTransformation
+	for i := range tgd.Transformations {
+		if tgd.Transformations[i].Type == helmv1alpha1.GenerateHelmWrapperV1alpha1 {
+			wrap = &tgd.Transformations[i]
+			break
+		}
+	}
+	require.NotNil(t, wrap, "expected a GenerateHelmWrapper transformation in the graph")
+	assert.Contains(t, wrap.ID, "Wrap")
+
+	spec := wrap.Spec.Data
+	chartFile, ok := spec["chartFile"].(string)
+	require.True(t, ok)
+	assert.Contains(t, chartFile, "Get")
+	assert.Contains(t, chartFile, ".output.chartFile")
+
+	chartResource, ok := spec["chartResource"].(string)
+	require.True(t, ok)
+	assert.Contains(t, chartResource, "Add")
+	assert.Contains(t, chartResource, ".output.resource")
+
+	images, ok := spec["images"].([]any)
+	require.True(t, ok)
+	require.Len(t, images, 1)
+	pair := images[0].(map[string]any)
+	source := pair["source"].(map[string]any)
+	assert.Equal(t, "my-image", source["name"])
+	target := pair["target"].(string)
+	assert.Contains(t, target, "Transfer")
+	assert.Contains(t, target, ".output.resource")
+
+	annotations, ok := spec["annotations"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "ocm.software/test:1.0.0", annotations[AnnotationComponent])
+	assert.Contains(t, annotations[AnnotationRepository], "ghcr.io/source")
+
+	cleanup := findCleanupTransformation(tgd)
+	require.NotNil(t, cleanup)
+	files := cleanup.Spec.Data["files"].([]any)
+	var wrapperChartFileRef bool
+	for _, f := range files {
+		if s, ok := f.(string); ok && strings.Contains(s, wrap.ID+".spec.chartFile") {
+			wrapperChartFileRef = true
+		}
+	}
+	assert.True(t, wrapperChartFileRef, "cleanup node must reference the wrapper's chartFile so it runs after the wrapper")
+}
+
+func TestBuildGraphDefinition_LocalizeOffProducesNoWrapper(t *testing.T) {
+	sourceRepo := testOCIRepo("ghcr.io/source")
+	targetRepo := testOCIRepo("ghcr.io/target")
+	desc := testDescriptor("ocm.software/test", "1.0.0",
+		[]descriptor.Resource{helmResource("my-chart", "1.0.0", "https://charts.example.com", "my-chart")}, nil)
+	resolver := testResolverFor("ocm.software/test", "1.0.0", sourceRepo, desc)
+	roots := testTransferRoots("ocm.software/test", "1.0.0", targetRepo, resolver)
+
+	cfg := transferv1alpha1.Config{
+		CopyMode:   transferv1alpha1.CopyModeAllResources,
+		UploadType: transferv1alpha1.UploadAsOciArtifact,
+	}
+	tgd, err := BuildGraphDefinition(t.Context(), roots, cfg)
+	require.NoError(t, err)
+
+	for _, tr := range tgd.Transformations {
+		assert.NotEqual(t, helmv1alpha1.GenerateHelmWrapperV1alpha1, tr.Type)
+	}
+}
+
 func TestBuildGraphDefinition_CTFTarget(t *testing.T) {
 	sourceRepo := testOCIRepo("ghcr.io/source")
 	targetRepo := testCTFRepo("/tmp/target-archive")

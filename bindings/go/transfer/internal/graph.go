@@ -135,7 +135,7 @@ func BuildGraphDefinition(
 	// Phase 2: walk the discovered DAG and generate transformation nodes per (component, target) pair.
 	g := dr.Graph()
 	err := g.WithReadLock(func(d *dag.DirectedAcyclicGraph[string]) error {
-		return fillGraphDefinitionWithPrefetchedComponents(ctx, d, targetMap, tgd, cfg.CopyMode, cfg.UploadType)
+		return fillGraphDefinitionWithPrefetchedComponents(ctx, d, targetMap, tgd, cfg)
 	})
 	if err != nil {
 		return nil, err
@@ -162,8 +162,7 @@ func fillGraphDefinitionWithPrefetchedComponents(
 	d *dag.DirectedAcyclicGraph[string],
 	targetMap map[string][]runtime.Typed,
 	tgd *transformv1alpha1.TransformationGraphDefinition,
-	copyMode transferv1alpha1.CopyMode,
-	uploadType transferv1alpha1.UploadType,
+	cfg transferv1alpha1.Config,
 ) error {
 	slog.DebugContext(ctx, "building transformations for discovered components",
 		"components", len(d.Vertices))
@@ -206,7 +205,7 @@ func fillGraphDefinitionWithPrefetchedComponents(
 				"targetIndex", targetIdx, "targetType", fmt.Sprintf("%T", target),
 				"transformID", id)
 
-			resourceTransformIDs, fileRefs, err := processResources(ctx, v2desc, id, val, tgd, target, copyMode, uploadType)
+			resourceTransformIDs, fileRefs, err := processResources(ctx, v2desc, id, val, tgd, target, cfg)
 			if err != nil {
 				return err
 			}
@@ -233,12 +232,12 @@ func processResources(
 	val *discoveryValue,
 	tgd *transformv1alpha1.TransformationGraphDefinition,
 	toSpec runtime.Typed,
-	copyMode transferv1alpha1.CopyMode,
-	uploadType transferv1alpha1.UploadType,
+	cfg transferv1alpha1.Config,
 ) (map[int]string, []string, error) {
 	component := val.Descriptor.Component.Name
 	version := val.Descriptor.Component.Version
 	resourceTransformIDs := make(map[int]string)
+	resourceAccesses := make(map[int]runtime.Typed, len(v2desc.Component.Resources))
 	var fileExpressions []string
 
 	for i, resource := range v2desc.Component.Resources {
@@ -249,18 +248,28 @@ func processResources(
 		if err := scheme.Convert(resource.Access, access); err != nil {
 			return nil, nil, fmt.Errorf("cannot convert resource access to typed object: %w", err)
 		}
+		resourceAccesses[i] = access
 
-		if copyMode == transferv1alpha1.CopyModeLocalBlobResources && !descriptorv2.IsLocalBlob(access) {
-			logSkippedResource(ctx, component, version, resource, copyMode, uploadType)
+		if cfg.CopyMode == transferv1alpha1.CopyModeLocalBlobResources && !descriptorv2.IsLocalBlob(access) {
+			logSkippedResource(ctx, component, version, resource, cfg.CopyMode, cfg.UploadType)
 			continue
 		}
 
-		exprs, err := processResource(resource, access, id, val, tgd, toSpec, resourceTransformIDs, i, uploadType)
+		exprs, err := processResource(resource, access, id, val, tgd, toSpec, resourceTransformIDs, i, cfg.UploadType)
 		if err != nil {
 			return nil, nil, err
 		}
 		fileExpressions = append(fileExpressions, exprs...)
 	}
+
+	if cfg.Localize {
+		exprs, err := processLocalizeWrappers(ctx, v2desc, id, val, tgd, toSpec, resourceTransformIDs, resourceAccesses)
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot generate helm localization wrappers: %w", err)
+		}
+		fileExpressions = append(fileExpressions, exprs...)
+	}
+
 	return resourceTransformIDs, fileExpressions, nil
 }
 

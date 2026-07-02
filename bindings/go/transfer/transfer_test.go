@@ -394,6 +394,19 @@ func TestBuildGraphDefinition_NoMappings(t *testing.T) {
 	assert.Contains(t, err.Error(), "no transfer mappings")
 }
 
+func TestBuildGraphDefinition_LocalizeRequiresAllResourcesAsOCIArtifacts(t *testing.T) {
+	_, err := BuildGraphDefinition(t.Context(), &transferv1alpha1.Config{Localize: true})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "localize requires")
+
+	_, err = BuildGraphDefinition(t.Context(), &transferv1alpha1.Config{
+		Localize: true,
+		CopyMode: transferv1alpha1.CopyModeAllResources,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "localize requires")
+}
+
 func TestBuildGraphDefinition_MissingTarget(t *testing.T) {
 	resolver := &mockCVRepoResolver{
 		specs: map[string]runtime.Typed{},

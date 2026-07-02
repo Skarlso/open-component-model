@@ -134,16 +134,31 @@ func stringField(node map[string]any, keys ...string) string {
 // TODO: this might trip with multiple values of the same like app/main:1.0.0 and app/main:2.0.0
 // Unlikely, but still.. should probably be more intelligent here.
 func resolvesToResource(registry, repository, tag string, s looseref.LooseReference) bool {
-	if repository != s.Repository {
-		return false
-	}
-	if registry != "" && s.Registry != "" && registry != s.Registry {
+	// TODO: ugly hack right now for podinfo's peculiar tag+image only values.
+	switch repository {
+	case s.Repository:
+		if registry != "" && s.Registry != "" && registry != s.Registry {
+			return false
+		}
+	case registryQualified(s):
+		if registry != "" {
+			return false
+		}
+	default:
 		return false
 	}
 	if tag != "" && s.Tag != "" && tag != s.Tag {
 		return false
 	}
 	return true
+}
+
+// TODO: Make this work better. :D <3
+func registryQualified(s looseref.LooseReference) string {
+	if s.Registry == "" {
+		return s.Repository
+	}
+	return s.Registry + "/" + s.Repository
 }
 
 // WrapperMeta contains the original chart identity and the OCI location it was

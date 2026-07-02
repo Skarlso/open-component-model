@@ -49,6 +49,45 @@ sidecar:
 			},
 		},
 		{
+			name: "host embedded in repository field matches (podinfo style)",
+			values: `
+image:
+  repository: ghcr.io/app/main
+  tag: 1.0.0
+`,
+			mappings: []localize.ImageMapping{
+				{Source: "ghcr.io/app/main:1.0.0", TargetRepository: "target.io/app/main", Digest: "sha256:aaa"},
+			},
+			want: []localize.Localization{
+				{Path: []string{"image"}, Repository: "target.io/app/main", Digest: "sha256:aaa"},
+			},
+		},
+		{
+			name: "host embedded in repository with conflicting registry key does not match",
+			values: `
+image:
+  registry: other.io
+  repository: ghcr.io/app/main
+  tag: 1.0.0
+`,
+			mappings: []localize.ImageMapping{
+				{Source: "ghcr.io/app/main:1.0.0", TargetRepository: "target.io/app/main", Digest: "sha256:aaa"},
+			},
+			want: nil,
+		},
+		{
+			name: "host embedded in repository with wrong host does not match",
+			values: `
+image:
+  repository: other.io/app/main
+  tag: 1.0.0
+`,
+			mappings: []localize.ImageMapping{
+				{Source: "ghcr.io/app/main:1.0.0", TargetRepository: "target.io/app/main", Digest: "sha256:aaa"},
+			},
+			want: nil,
+		},
+		{
 			name: "mapping without digest is skipped",
 			values: `
 image:

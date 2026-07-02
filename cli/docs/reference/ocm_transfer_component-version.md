@@ -47,6 +47,7 @@ How the graph is built:
     2. CTFAddComponentVersion -> OCIAddComponentVersion
     3. GetOCIArtifact -> OCIAddLocalResource / AddOCIArtifact
     4. GetHelmChart -> ConvertHelmToOCI -> OCIAddLocalResource / AddOCIArtifact
+    5. GenerateHelmWrapper (with --localize, appended per Helm chart)
 
 ```
 ocm transfer component-version {reference} {target} [flags]
@@ -99,6 +100,7 @@ transfer component-version --transfer-spec spec.yaml
       --copy-resources         copy all resources in the component version
       --dry-run                build and validate the graph but do not execute
   -h, --help                   help for component-version
+      --localize               Generate and upload a localized wrapper chart next to every transferred Helm chart, overriding image references in the chart values with their transferred locations. Requires --copy-resources and --upload-as ociArtifact.
   -o, --output enum            output format of the component descriptors
                                (must be one of [json ndjson yaml]) (default yaml)
   -r, --recursive              recursively discover and transfer component versions

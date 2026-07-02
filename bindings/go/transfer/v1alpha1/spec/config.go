@@ -58,6 +58,16 @@ type Config struct {
 	// embedded as local blobs within the component descriptor or uploaded as separate OCI artifacts
 	// with their own repository references.
 	UploadType UploadType `json:"uploadType,omitempty"`
+
+	// Localize enables transfer-time Helm chart localization. For every Helm chart
+	// uploaded as an OCI artifact, a localized wrapper chart is generated and uploaded
+	// next to the chart in the target repository, overriding image references in the
+	// chart values with their transferred locations.
+	//
+	// Localization requires [CopyModeAllResources] and [UploadAsOciArtifact]: image
+	// resources must be transferred with the component and land at addressable OCI
+	// references for the wrapper values to point at them.
+	Localize bool `json:"localize,omitempty"`
 }
 
 // Validate rejects a non-matching [Config.Type] and unknown enum values.
@@ -149,6 +159,9 @@ func Merge(configs ...*Config) *Config {
 		}
 		if cfg.UploadType != "" {
 			merged.UploadType = cfg.UploadType
+		}
+		if cfg.Localize {
+			merged.Localize = true
 		}
 	}
 	return merged

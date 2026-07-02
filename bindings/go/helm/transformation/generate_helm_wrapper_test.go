@@ -87,6 +87,7 @@ func TestGenerateAndUploadWrapper(t *testing.T) {
 	require.NotNil(t, repo.uploadedResource)
 	assert.Equal(t, "podinfo-localized", repo.uploadedResource.Name)
 	assert.Equal(t, "6.11.1-localized.1", repo.uploadedResource.Version)
+	assert.Equal(t, descriptor.LocalRelation, repo.uploadedResource.Relation)
 
 	access, ok := repo.uploadedResource.Access.(*ociaccess.OCIImage)
 	require.True(t, ok)

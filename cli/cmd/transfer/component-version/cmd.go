@@ -36,6 +36,7 @@ const (
 	FlagRecursive     = "recursive"
 	FlagCopyResources = "copy-resources"
 	FlagUploadAs      = "upload-as"
+	FlagLocalize      = "localize"
 	FlagTransferSpec  = "transfer-spec"
 
 	// Each node emits 2 events (Running + Completed/Failed) and since the tracker consumes
@@ -82,7 +83,8 @@ How the graph is built:
     1. CTFGetComponentVersion -> OCIGetComponentVersion
     2. CTFAddComponentVersion -> OCIAddComponentVersion
     3. GetOCIArtifact -> OCIAddLocalResource / AddOCIArtifact
-    4. GetHelmChart -> ConvertHelmToOCI -> OCIAddLocalResource / AddOCIArtifact`,
+    4. GetHelmChart -> ConvertHelmToOCI -> OCIAddLocalResource / AddOCIArtifact
+    5. GenerateHelmWrapper (with --localize, appended per Helm chart)`,
 		Example: strings.TrimSpace(`
 # Transfer a component version from a CTF archive to an OCI registry
 transfer component-version ctf::./my-archive//ocm.software/mycomponent:1.0.0 ghcr.io/my-org/ocm
@@ -136,6 +138,8 @@ transfer component-version --transfer-spec spec.yaml
 	}
 	enum.VarP(cmd.Flags(), FlagUploadAs, "u", uploadAsValues,
 		"Define whether copied resources should be uploaded as OCI artifacts (instead of local blob resources). This option is only relevant if --copy-resources is set.")
+	cmd.Flags().Bool(FlagLocalize, false,
+		"Generate and upload a localized wrapper chart next to every transferred Helm chart, overriding image references in the chart values with their transferred locations. Requires --copy-resources and --upload-as ociArtifact.")
 	cmd.Flags().String(FlagTransferSpec, "", "path to a transfer specification file (use \"-\" for stdin)")
 
 	return cmd
@@ -151,7 +155,7 @@ func transferArgs(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			return fmt.Errorf("positional arguments are not allowed when --%s is set", FlagTransferSpec)
 		}
-		ignoredFlags := []string{FlagRecursive, FlagCopyResources, FlagUploadAs}
+		ignoredFlags := []string{FlagRecursive, FlagCopyResources, FlagUploadAs, FlagLocalize}
 		for _, name := range ignoredFlags {
 			if cmd.Flags().Changed(name) {
 				slog.Warn(fmt.Sprintf("--%s has no effect when --%s is set", name, FlagTransferSpec))
@@ -371,6 +375,13 @@ func buildGraphDefinitionFromArgs(
 			return nil, fmt.Errorf("getting upload-as flag failed: %w", err)
 		}
 		transferCfg.UploadType = transferv1alpha1.UploadType(uploadAs)
+	}
+	if cmd.Flags().Changed(FlagLocalize) {
+		localize, err := cmd.Flags().GetBool(FlagLocalize)
+		if err != nil {
+			return nil, fmt.Errorf("getting localize flag failed: %w", err)
+		}
+		transferCfg.Localize = localize
 	}
 
 	tgd, err := transfer.BuildGraphDefinition(ctx, transferCfg,

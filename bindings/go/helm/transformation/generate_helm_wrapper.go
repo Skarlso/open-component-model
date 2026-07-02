@@ -8,12 +8,14 @@ import (
 	"os"
 	"path"
 
+	"github.com/opencontainers/go-digest"
 	"helm.sh/helm/v4/pkg/chart/v2/loader"
 
 	"ocm.software/open-component-model/bindings/go/blob"
 	"ocm.software/open-component-model/bindings/go/blob/filesystem"
 	"ocm.software/open-component-model/bindings/go/credentials"
 	descriptor "ocm.software/open-component-model/bindings/go/descriptor/runtime"
+	descv2 "ocm.software/open-component-model/bindings/go/descriptor/v2"
 	"ocm.software/open-component-model/bindings/go/helm/localize"
 	"ocm.software/open-component-model/bindings/go/helm/transformation/spec/v1alpha1"
 	"ocm.software/open-component-model/bindings/go/oci/looseref"
@@ -84,6 +86,7 @@ func GenerateAndUploadWrapper(ctx context.Context, repo repository.ResourceRepos
 	res.Name = wrapper.Metadata.Name
 	res.Version = wrapper.Metadata.Version
 	res.Type = "helmChart"
+	res.Relation = descriptor.LocalRelation
 	res.Access = &ociaccess.OCIImage{
 		Type:           runtime.Type{Name: ociaccess.LegacyType, Version: ociaccess.LegacyTypeVersion},
 		ImageReference: targetRef,
@@ -205,7 +208,22 @@ func imageMappingFromPair(ctx context.Context, pair v1alpha1.ImagePair) (localiz
 	if err != nil {
 		return localize.ImageMapping{}, false, fmt.Errorf("failed creating image mapping for resource %q: %w", pair.Target.Name, err)
 	}
+
+	// TODO: Uploads return tag-only references, we want a digest. For now, we'll generate it.
+	// TODO: Actually, after construction any image reference should be turned into their digest format.
+	// imageReference: ghcr.io/stefanprodan/podinfo:6.9.1 should become imageReference: 6.9.1@sha256...
+	if mapping.Digest == "" {
+		slog.DebugContext(ctx, "target has no digest, using resource digest", "resource", pair.Target.Name)
+		mapping.Digest = digestFromResource(pair.Target)
+	}
 	return mapping, true, nil
+}
+
+func digestFromResource(res *descv2.Resource) string {
+	if res.Digest == nil {
+		return ""
+	}
+	return digest.NewDigestFromEncoded(digest.SHA256, res.Digest.Value).String()
 }
 
 // ociImageFromAccess decodes an access specification into an OCIImage.
