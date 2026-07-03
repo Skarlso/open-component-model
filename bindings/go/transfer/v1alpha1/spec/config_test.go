@@ -127,6 +127,16 @@ func TestMerge(t *testing.T) {
 
 		assert.Equal(t, spec.CopyModeAllResources, merged.CopyMode)
 	})
+
+	t.Run("localize and signWrapper propagate", func(t *testing.T) {
+		a := &spec.Config{Localize: true, SignWrapper: true}
+		b := &spec.Config{}
+
+		merged := spec.Merge(a, b)
+
+		assert.True(t, merged.Localize)
+		assert.True(t, merged.SignWrapper)
+	})
 }
 
 func TestLookupConfig(t *testing.T) {

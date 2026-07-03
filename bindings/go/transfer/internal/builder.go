@@ -103,6 +103,13 @@ func NewDefaultBuilder(
 		Scheme: transformerScheme,
 	}
 
+	// Notation signing transformer
+	transformerScheme.MustRegisterWithAlias(&SignOCIArtifactTransformation{}, SignOCIArtifactVersionedType)
+	signOCIArtifact := &SignOCIArtifact{
+		Scheme:             transformerScheme,
+		CredentialProvider: credentialProvider,
+	}
+
 	return builder.NewBuilder(transformerScheme).
 		WithTransformer(&ociv1alpha1.OCIGetComponentVersion{}, ociGet).
 		WithTransformer(&ociv1alpha1.OCIAddComponentVersion{}, ociAdd).
@@ -118,5 +125,6 @@ func NewDefaultBuilder(
 		WithTransformer(&helmv1alpha1.GetHelmChart{}, getHelmChart).
 		WithTransformer(&helmv1alpha1.ConvertHelmToOCI{}, convertHelmToOCI).
 		WithTransformer(&helmv1alpha1.GenerateHelmWrapper{}, generateHelmWrapper).
-		WithTransformer(&FileCleanupTransformation{}, fileCleanup)
+		WithTransformer(&FileCleanupTransformation{}, fileCleanup).
+		WithTransformer(&SignOCIArtifactTransformation{}, signOCIArtifact)
 }

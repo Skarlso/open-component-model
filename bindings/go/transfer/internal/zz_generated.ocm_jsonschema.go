@@ -18,6 +18,15 @@ var schemaFileCleanupSpec []byte
 //go:embed schemas/FileCleanupTransformation.schema.json
 var schemaFileCleanupTransformation []byte
 
+//go:embed schemas/SignOCIArtifactOutput.schema.json
+var schemaSignOCIArtifactOutput []byte
+
+//go:embed schemas/SignOCIArtifactSpec.schema.json
+var schemaSignOCIArtifactSpec []byte
+
+//go:embed schemas/SignOCIArtifactTransformation.schema.json
+var schemaSignOCIArtifactTransformation []byte
+
 // JSONSchema returns the JSON Schema for FileCleanupOutput.
 func (FileCleanupOutput) JSONSchema() []byte {
 	return schemaFileCleanupOutput
@@ -31,4 +40,19 @@ func (FileCleanupSpec) JSONSchema() []byte {
 // JSONSchema returns the JSON Schema for FileCleanupTransformation.
 func (FileCleanupTransformation) JSONSchema() []byte {
 	return schemaFileCleanupTransformation
+}
+
+// JSONSchema returns the JSON Schema for SignOCIArtifactOutput.
+func (SignOCIArtifactOutput) JSONSchema() []byte {
+	return schemaSignOCIArtifactOutput
+}
+
+// JSONSchema returns the JSON Schema for SignOCIArtifactSpec.
+func (SignOCIArtifactSpec) JSONSchema() []byte {
+	return schemaSignOCIArtifactSpec
+}
+
+// JSONSchema returns the JSON Schema for SignOCIArtifactTransformation.
+func (SignOCIArtifactTransformation) JSONSchema() []byte {
+	return schemaSignOCIArtifactTransformation
 }

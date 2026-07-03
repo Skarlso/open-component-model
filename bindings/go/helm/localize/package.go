@@ -26,15 +26,33 @@ type PackagedWrapper struct {
 
 // Package serializes a wrapper chart into a Helm .tgz and then into an OCI image
 // layout. tmpDir is passed in so the location remains configurable by .ocmconfig.
+// We vendor the chart here to ensure that install works since you can't resolve
+// or vendor at install time. This is okay here from a security standpoint because
+// later when sign this artifact it will sign not the reference but the actual chart
+// bytes so we'll always know that the wrapper is correct.
 // TODO: Annotations are used for backtracking for the component version for now.
 // TODO: Not going to deal with frigging Chart.lock file rn. :D
-func Package(ctx context.Context, wrapper *Wrapper, tmpDir string, annotations map[string]string) (*PackagedWrapper, error) {
+func Package(ctx context.Context, wrapper *Wrapper, originalChart []byte, tmpDir string, annotations map[string]string) (*PackagedWrapper, error) {
+	if len(originalChart) == 0 {
+		return nil, fmt.Errorf("original chart archive is required to vendor the wrapper dependency")
+	}
+	if len(wrapper.Metadata.Dependencies) == 0 {
+		return nil, fmt.Errorf("wrapper metadata carries no dependency to vendor")
+	}
+	dep := wrapper.Metadata.Dependencies[0]
+
 	chart := &chartv2.Chart{
 		Metadata: wrapper.Metadata,
 		Raw: []*chartcommon.File{
 			{
 				Name: chartutil.ValuesfileName,
 				Data: wrapper.ValuesYAML,
+			},
+		},
+		Files: []*chartcommon.File{
+			{
+				Name: fmt.Sprintf("charts/%s-%s.tgz", dep.Name, dep.Version),
+				Data: originalChart,
 			},
 		},
 		Values: wrapper.Values,

@@ -263,7 +263,7 @@ func processResources(
 	}
 
 	if cfg.Localize {
-		exprs, err := processLocalizeWrappers(ctx, v2desc, id, val, tgd, toSpec, resourceTransformIDs, resourceAccesses)
+		exprs, err := processLocalizeWrappers(ctx, v2desc, id, val, tgd, toSpec, resourceTransformIDs, resourceAccesses, cfg.SignWrapper)
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot generate helm localization wrappers: %w", err)
 		}

@@ -1,9 +1,11 @@
 package transformation
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path"
@@ -56,7 +58,12 @@ func GenerateAndUploadWrapper(ctx context.Context, repo repository.ResourceRepos
 		}
 	}()
 
-	chart, err := loader.LoadArchive(rc)
+	chartBytes, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, fmt.Errorf("buffering chart archive: %w", err)
+	}
+
+	chart, err := loader.LoadArchive(bytes.NewReader(chartBytes))
 	if err != nil {
 		return nil, fmt.Errorf("loading chart archive: %w", err)
 	}
@@ -75,7 +82,7 @@ func GenerateAndUploadWrapper(ctx context.Context, repo repository.ResourceRepos
 		return nil, fmt.Errorf("creating wrapper: %w", err)
 	}
 
-	pkg, err := localize.Package(ctx, wrapper, req.TempDir, req.Annotations)
+	pkg, err := localize.Package(ctx, wrapper, chartBytes, req.TempDir, req.Annotations)
 	if err != nil {
 		return nil, fmt.Errorf("packaging wrapper: %w", err)
 	}

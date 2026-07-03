@@ -95,6 +95,7 @@ func processLocalizeWrappers(
 	toSpec runtime.Typed,
 	resourceTransformIDs map[int]string,
 	resourceAccesses map[int]runtime.Typed,
+	signWrapper bool,
 ) ([]string, error) {
 	if _, isOCITarget := toSpec.(*oci.Repository); !isOCITarget {
 		slog.DebugContext(ctx, "skipping helm chart localization: target repository is not an OCI registry",
@@ -139,6 +140,19 @@ func processLocalizeWrappers(
 			}},
 		}
 		tgd.Transformations = append(tgd.Transformations, wrapTransform)
+
+		if signWrapper {
+			signTransform := transformv1alpha1.GenericTransformation{
+				TransformationMeta: meta.TransformationMeta{
+					Type: SignOCIArtifactVersionedType,
+					ID:   fmt.Sprintf("%sSign%s", id, resourceID),
+				},
+				Spec: &runtime.Unstructured{Data: map[string]any{
+					"resource": fmt.Sprintf("${%s.output.resource}", wrapResourceID),
+				}},
+			}
+			tgd.Transformations = append(tgd.Transformations, signTransform)
+		}
 
 		fileExpressions = append(fileExpressions, fmt.Sprintf("${%s.spec.chartFile}", wrapResourceID))
 	}

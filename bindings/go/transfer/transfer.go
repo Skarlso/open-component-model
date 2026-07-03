@@ -48,6 +48,10 @@ func BuildGraphDefinition(
 			transferv1alpha1.CopyModeAllResources, transferv1alpha1.UploadAsOciArtifact, resolved.CopyMode, resolved.UploadType)
 	}
 
+	if resolved.SignWrapper && !resolved.Localize {
+		return nil, fmt.Errorf("signWrapper requires localize: there is no wrapper artifact to sign without localization")
+	}
+
 	roots, err := collectTransferRoots(ctx, mappings)
 	if err != nil {
 		return nil, err

@@ -48,6 +48,7 @@ How the graph is built:
     3. GetOCIArtifact -> OCIAddLocalResource / AddOCIArtifact
     4. GetHelmChart -> ConvertHelmToOCI -> OCIAddLocalResource / AddOCIArtifact
     5. GenerateHelmWrapper (with --localize, appended per Helm chart)
+    6. SignOCIArtifact (with --sign-wrapper, appended per wrapper chart)
 
 ```
 ocm transfer component-version {reference} {target} [flags]
@@ -104,6 +105,7 @@ transfer component-version --transfer-spec spec.yaml
   -o, --output enum            output format of the component descriptors
                                (must be one of [json ndjson yaml]) (default yaml)
   -r, --recursive              recursively discover and transfer component versions
+      --sign-wrapper           Sign every generated wrapper chart with a Notary Project X.509 signature pushed to the target registry. Signing key material is resolved from the credential graph via a NotationSigner consumer identity. Requires --localize.
       --transfer-spec string   path to a transfer specification file (use "-" for stdin)
   -u, --upload-as enum         Define whether copied resources should be uploaded as OCI artifacts (instead of local blob resources). This option is only relevant if --copy-resources is set.
                                (must be one of [default localBlob ociArtifact]) (default default)

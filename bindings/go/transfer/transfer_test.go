@@ -407,6 +407,16 @@ func TestBuildGraphDefinition_LocalizeRequiresAllResourcesAsOCIArtifacts(t *test
 	assert.Contains(t, err.Error(), "localize requires")
 }
 
+func TestBuildGraphDefinition_SignWrapperRequiresLocalize(t *testing.T) {
+	_, err := BuildGraphDefinition(t.Context(), &transferv1alpha1.Config{
+		SignWrapper: true,
+		CopyMode:    transferv1alpha1.CopyModeAllResources,
+		UploadType:  transferv1alpha1.UploadAsOciArtifact,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "signWrapper requires localize")
+}
+
 func TestBuildGraphDefinition_MissingTarget(t *testing.T) {
 	resolver := &mockCVRepoResolver{
 		specs: map[string]runtime.Typed{},
