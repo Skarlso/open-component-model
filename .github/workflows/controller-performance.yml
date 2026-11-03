@@ -82,7 +82,8 @@ jobs:
     concurrency:
       group: controller-performance-${{ github.event.issue.number && format('pr-{0}-{1}', github.event.issue.number, matrix.side) || github.ref }}
       cancel-in-progress: ${{ github.event_name == 'issue_comment' }}
-      queue: max
+      # GitHub rejects queue: max together with cancel-in-progress: true.
+      queue: ${{ github.event_name == 'issue_comment' && 'single' || 'max' }}
     runs-on: ubuntu-26.04-arm
     # The hosted runner maximum. Hitting it cancels the job, which skips the report steps, so the step
     # limits below add up to 355 (5 x 5 tools, 25 setup, 290 benchmark, 5 + 10 report), leaving 5 for the runner.
