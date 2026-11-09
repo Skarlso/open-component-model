@@ -1,0 +1,8 @@
+apiVersion: kro.run/v1alpha1
+kind: LocalizedHelmRelease
+metadata:
+  name: helm-localization-rules
+spec:
+  component: helm-localization-rules-component
+  releaseName: helm-localization-rules-podinfo
+  configMap: helm-localization-rules-config

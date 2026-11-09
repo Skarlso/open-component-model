@@ -34,6 +34,7 @@ import (
 	"ocm.software/open-component-model/bindings/go/kubernetes/controller/internal/controller/deployer/cache"
 	"ocm.software/open-component-model/bindings/go/kubernetes/controller/internal/controller/deployer/dynamic"
 	"ocm.software/open-component-model/bindings/go/kubernetes/controller/internal/controller/discovery"
+	"ocm.software/open-component-model/bindings/go/kubernetes/controller/internal/controller/localization"
 	"ocm.software/open-component-model/bindings/go/kubernetes/controller/internal/controller/replication"
 	"ocm.software/open-component-model/bindings/go/kubernetes/controller/internal/controller/repository"
 	"ocm.software/open-component-model/bindings/go/kubernetes/controller/internal/controller/resource"
@@ -85,6 +86,7 @@ func main() {
 		deployerConcurrency       int
 		replicationConcurrency    int
 		discoveryConcurrency      int
+		localizationConcurrency   int
 		// The qps values are strings because Helm's --set turns fractions into strings.
 		repositoryRateLimit            ocm.RateLimit
 		repositoryRateLimitQPS         string
@@ -96,6 +98,8 @@ func main() {
 		replicationRateLimitQPS        string
 		discoveryRateLimit             ocm.RateLimit
 		discoveryRateLimitQPS          string
+		localizationRateLimit          ocm.RateLimit
+		localizationRateLimitQPS       string
 		deployerRateLimit              ocm.RateLimit
 		deployerRateLimitQPS           string
 		namespacedDeployerRateLimit    ocm.RateLimit
@@ -135,6 +139,8 @@ func main() {
 		"The replication controller concurrency. This is the number of active replication controller workers that can be kept alive.")
 	flag.IntVar(&discoveryConcurrency, "discovery-controller-concurrency", 4, //nolint:mnd // no magic number
 		"The discovery controller concurrency. This is the number of active discovery controller workers that can be kept alive.")
+	flag.IntVar(&localizationConcurrency, "localization-controller-concurrency", 4, //nolint:mnd // no magic number
+		"The localization controller concurrency. This is the number of active localization controller workers that can be kept alive.")
 	flag.StringVar(&repositoryRateLimitQPS, "repository-controller-rate-limit-qps", strconv.Itoa(ocm.DefaultRateLimitQPS),
 		"Requeues per second the Repository controller admits once its burst is used up. Must be a float greater than 0, e.g. 0.1.")
 	flag.IntVar(&repositoryRateLimit.Burst, "repository-controller-rate-limit-burst", ocm.DefaultRateLimitBurst,
@@ -155,6 +161,10 @@ func main() {
 		"Requeues per second the Discovery controller admits once its burst is used up. Must be a float greater than 0, e.g. 0.1.")
 	flag.IntVar(&discoveryRateLimit.Burst, "discovery-controller-rate-limit-burst", ocm.DefaultRateLimitBurst,
 		"Requeues the Discovery controller admits at once before its qps applies. Must be at least 1.")
+	flag.StringVar(&localizationRateLimitQPS, "localization-controller-rate-limit-qps", strconv.Itoa(ocm.DefaultRateLimitQPS),
+		"Requeues per second the Localization controller admits once its burst is used up. Must be a float greater than 0, e.g. 0.1.")
+	flag.IntVar(&localizationRateLimit.Burst, "localization-controller-rate-limit-burst", ocm.DefaultRateLimitBurst,
+		"Requeues the Localization controller admits at once before its qps applies. Must be at least 1.")
 	flag.StringVar(&deployerRateLimitQPS, "deployer-controller-rate-limit-qps", strconv.Itoa(ocm.DefaultRateLimitQPS),
 		"Requeues per second the Deployer controller admits once its burst is used up. Must be a float greater than 0, e.g. 0.1.")
 	flag.IntVar(&deployerRateLimit.Burst, "deployer-controller-rate-limit-burst", ocm.DefaultRateLimitBurst,
@@ -211,6 +221,7 @@ func main() {
 	resourceRateLimit.QPS = parseRateLimit("resource", resourceRateLimitQPS, resourceRateLimit.Burst)
 	replicationRateLimit.QPS = parseRateLimit("replication", replicationRateLimitQPS, replicationRateLimit.Burst)
 	discoveryRateLimit.QPS = parseRateLimit("discovery", discoveryRateLimitQPS, discoveryRateLimit.Burst)
+	localizationRateLimit.QPS = parseRateLimit("localization", localizationRateLimitQPS, localizationRateLimit.Burst)
 	deployerRateLimit.QPS = parseRateLimit("deployer", deployerRateLimitQPS, deployerRateLimit.Burst)
 	namespacedDeployerRateLimit.QPS = parseRateLimit("namespaced-deployer", namespacedDeployerRateLimitQPS, namespacedDeployerRateLimit.Burst)
 
@@ -373,6 +384,20 @@ func main() {
 		},
 	}).SetupWithManager(ctx, mgr, discoveryConcurrency); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Discovery")
+		os.Exit(1)
+	}
+
+	if err = (&localization.Reconciler{
+		BaseReconciler: &ocm.BaseReconciler{
+			Client:           mgr.GetClient(),
+			Scheme:           mgr.GetScheme(),
+			EventRecorder:    eventsRecorder,
+			NewPluginManager: newPluginManager,
+			RateLimit:        localizationRateLimit,
+		},
+		Resolver: resolver,
+	}).SetupWithManager(ctx, mgr, localizationConcurrency); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Localization")
 		os.Exit(1)
 	}
 

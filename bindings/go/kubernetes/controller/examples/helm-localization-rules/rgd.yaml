@@ -1,0 +1,84 @@
+# Nothing in this graph is specific to podinfo: the image mapping comes from the chart's signed
+# ocm.software/localization-rules label, so the same graph deploys any chart that carries one.
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: helm-localization-rules
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: LocalizedHelmRelease
+    spec:
+      component: string
+      chart: string | default="chart"
+      releaseName: string
+      configMap: string
+  resources:
+    - id: chart
+      template:
+        apiVersion: delivery.ocm.software/v1alpha1
+        kind: Resource
+        metadata:
+          name: "${schema.metadata.name}-chart"
+        spec:
+          componentRef:
+            name: ${schema.spec.component}
+          resource:
+            byReference:
+              resource:
+                name: ${schema.spec.chart}
+          additionalStatusFields:
+            registry: resource.access.toOCI().registry
+            repository: resource.access.toOCI().repository
+            digest: resource.access.toOCI().digest
+    - id: localization
+      readyWhen:
+        - ${localization.status.conditions.exists(c, c.type == "Ready" && c.status == "True")}
+      template:
+        apiVersion: delivery.ocm.software/v1alpha1
+        kind: Localization
+        metadata:
+          name: "${schema.metadata.name}"
+        spec:
+          componentRef:
+            name: ${schema.spec.component}
+          resource:
+            byReference:
+              resource:
+                name: ${schema.spec.chart}
+          target:
+            configMapName: "${schema.metadata.name}-localized"
+    - id: ocirepository
+      template:
+        apiVersion: source.toolkit.fluxcd.io/v1
+        kind: OCIRepository
+        metadata:
+          name: "${schema.metadata.name}"
+        spec:
+          interval: 1m0s
+          insecure: true
+          layerSelector:
+            mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+            operation: copy
+          url: oci://${chart.status.additional.registry}/${chart.status.additional.repository}
+          ref:
+            digest: ${chart.status.additional.digest}
+    - id: helmrelease
+      template:
+        apiVersion: helm.toolkit.fluxcd.io/v2
+        kind: HelmRelease
+        metadata:
+          name: "${schema.metadata.name}"
+        spec:
+          releaseName: "${schema.spec.releaseName}"
+          interval: 1m
+          timeout: 5m
+          chartRef:
+            kind: OCIRepository
+            name: ${ocirepository.metadata.name}
+          valuesFrom:
+            # Later entries win, so configuration can still replace a localized image.
+            - kind: ConfigMap
+              name: ${localization.spec.target.configMapName}
+            - kind: ConfigMap
+              name: ${schema.spec.configMap}

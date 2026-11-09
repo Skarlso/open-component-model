@@ -18,6 +18,7 @@ rules:
         - components
         - deployers
         - discoveries
+        - localizations
         - namespaceddeployers
         - replications
         - repositories
@@ -33,6 +34,7 @@ rules:
         - deployers/status
         - namespaceddeployers/status
         - discoveries/status
+        - localizations/status
         - replications/status
         - repositories/status
         - resources/status

@@ -245,6 +245,67 @@ func TestParseReference(t *testing.T) {
 	r.Equal("v1", m["reference"])
 }
 
+func TestResolveAccess(t *testing.T) {
+	tests := []struct {
+		name    string
+		access  runtime.Typed
+		opts    []functions.Option
+		expects functions.Reference
+		err     require.ErrorAssertionFunc
+	}{
+		{
+			name: "OCIImage access resolves from its image reference",
+			access: &ocispec.OCIImage{
+				Type:           runtime.NewVersionedType(ocispec.LegacyType, ocispec.LegacyTypeVersion),
+				ImageReference: "ghcr.io/org/repo:v1@sha256:7a91508d9177f43552b60cfc0182d7c30a84e95bed03854855b3ab29b6a85db2",
+			},
+			expects: functions.Reference{
+				Host:       "ghcr.io",
+				Repository: "org/repo",
+				Tag:        "v1",
+				Digest:     "sha256:7a91508d9177f43552b60cfc0182d7c30a84e95bed03854855b3ab29b6a85db2",
+			},
+		},
+		{
+			name: "other access types go through the registered resolver",
+			access: &runtime.Raw{
+				Type: runtime.NewVersionedType("custom", "v1"),
+				Data: []byte(`{"type":"custom/v1"}`),
+			},
+			opts: []functions.Option{
+				functions.WithReferenceResolver(func(*runtime.Raw) (functions.Reference, bool, error) {
+					return functions.Reference{Host: "example.com", Repository: "custom/repo"}, true, nil
+				}),
+			},
+			expects: functions.Reference{Host: "example.com", Repository: "custom/repo"},
+		},
+		{
+			name: "an access no resolver accepts fails",
+			access: &runtime.Raw{
+				Type: runtime.NewVersionedType("custom", "v1"),
+				Data: []byte(`{"type":"custom/v1"}`),
+			},
+			err: require.Error,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r := require.New(t)
+			raw := &runtime.Raw{}
+			r.NoError(runtime.NewScheme(runtime.WithAllowUnknown()).Convert(tc.access, raw))
+
+			ref, err := functions.ResolveAccess(raw, tc.opts...)
+			if tc.err != nil {
+				tc.err(t, err)
+				return
+			}
+			r.NoError(err)
+			r.Equal(tc.expects, ref)
+		})
+	}
+}
+
 // runToOCITests runs tests against the ToOCI CEL binding and asserts against the desired output.
 func runToOCITests(t *testing.T,
 	input any,

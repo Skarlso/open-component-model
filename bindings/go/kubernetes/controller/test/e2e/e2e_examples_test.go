@@ -31,6 +31,8 @@ const (
 var ignoreExamples = map[string]struct{}{
 	"applyset-pruning":   {}, // tested in e2e_applyset_test.go
 	"replication-simple": {}, // tested in e2e_replication_test.go
+	// POC: Flux only, while this test also expects an Argo CD Application for every instance.yaml.
+	"helm-localization-rules": {},
 }
 
 var _ = Describe("controller", func() {

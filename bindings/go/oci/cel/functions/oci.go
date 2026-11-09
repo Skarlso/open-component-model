@@ -185,9 +185,23 @@ func (o *options) resolveAccess(m map[string]any) (Reference, error) {
 	if raw.GetType().IsEmpty() {
 		return Reference{}, fmt.Errorf("expected an access with a type, got an untyped map")
 	}
+	return o.resolveRaw(&raw)
+}
 
+// ResolveAccess resolves a typed access into its OCI reference as toOCI does: an
+// OCIImage access through its image reference, any other type through the resolvers
+// registered with [WithReferenceResolver].
+func ResolveAccess(access *runtime.Raw, opts ...Option) (Reference, error) {
+	o := &options{}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o.resolveRaw(access)
+}
+
+func (o *options) resolveRaw(raw *runtime.Raw) (Reference, error) {
 	if obj, err := ociaccess.Scheme.NewObject(raw.GetType()); err == nil {
-		if err := ociaccess.Scheme.Convert(&raw, obj); err != nil {
+		if err := ociaccess.Scheme.Convert(raw, obj); err != nil {
 			return Reference{}, fmt.Errorf("converting access of type %s failed: %w", raw.GetType(), err)
 		}
 		if image, ok := obj.(*ociaccessv1.OCIImage); ok {
@@ -196,7 +210,7 @@ func (o *options) resolveAccess(m map[string]any) (Reference, error) {
 	}
 
 	for _, resolve := range o.resolvers {
-		r, ok, err := resolve(&raw)
+		r, ok, err := resolve(raw)
 		if err != nil {
 			return Reference{}, err
 		}

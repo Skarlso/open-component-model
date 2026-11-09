@@ -25,6 +25,7 @@ See the [installation notes in the root README](../README.md#installation) for d
 | [`helm-signing`](#helm-signing) | FluxCD + ArgoCD | Deploying a signed Helm chart with key verification |
 | [`helm-simple-nested-status`](#helm-simple-nested-status) | FluxCD + ArgoCD | Exposing nested resource status fields through `additionalStatusFields` |
 | [`helm-configuration-localization`](#helm-configuration-localization) | FluxCD + ArgoCD | Image localization + Helm value injection |
+| [`helm-localization-rules`](#helm-localization-rules) | FluxCD | Image localization from signed rules through a `Localization`, with one chart-agnostic RGD |
 | [`kustomize-simple`](#kustomize-simple) | FluxCD + ArgoCD | Kustomize overlay from a Git-sourced OCM resource |
 | [`kustomize-configuration-localization`](#kustomize-configuration-localization) | FluxCD + ArgoCD | Image localization via Kustomize JSON patches |
 | [`k8s-manifest-simple`](#k8s-manifest-simple) | `NamespacedDeployer` | Applying a plain Kubernetes manifest from an OCM resource |
@@ -123,6 +124,20 @@ arise with the string-based `values` field.
 ```bash
 task test/e2e -- --focus=helm-configuration-localization
 ```
+
+---
+
+## helm-localization-rules
+
+**Deployers:** FluxCD
+
+A proof of concept. The chart resource carries a signed `ocm.software/localization-rules` label that maps the
+`image` resource onto the chart's `image.repository` and `image.tag`. A `Localization` reads the rules and writes
+the transferred image location, pinned to the signed digest, into a ConfigMap. The `HelmRelease` reads it through
+`valuesFrom`, followed by a ConfigMap with landscape configuration.
+
+The RGD names no image and no values path, so the same RGD deploys any chart with such a label. Argo CD has no
+`valuesFrom`, so this example covers FluxCD only and is not part of the shared e2e example test.
 
 ---
 

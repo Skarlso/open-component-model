@@ -95,3 +95,12 @@ const (
 	// PayloadTooLargeReason is used when the Discovery status payload exceeds the API server size limit.
 	PayloadTooLargeReason = "PayloadTooLarge"
 )
+
+// Localization condition reasons.
+const (
+	// LocalizationFailedReason is used when the localization rules cannot be read or applied.
+	LocalizationFailedReason = "LocalizationFailed"
+
+	// TargetNotOwnedReason is used when the target ConfigMap exists but is not owned by the Localization.
+	TargetNotOwnedReason = "TargetNotOwned"
+)
