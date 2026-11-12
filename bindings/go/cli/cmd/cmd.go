@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"ocm.software/open-component-model/bindings/go/cli/cmd/add"
+	"ocm.software/open-component-model/bindings/go/cli/cmd/bootstrap"
 	"ocm.software/open-component-model/bindings/go/cli/cmd/configuration"
 	"ocm.software/open-component-model/bindings/go/cli/cmd/describe"
 	"ocm.software/open-component-model/bindings/go/cli/cmd/download"
@@ -79,6 +80,7 @@ func New() *cobra.Command {
 	cmd.AddCommand(pluginregistry.New())
 	cmd.AddCommand(transfer.New())
 	cmd.AddCommand(describe.New())
+	cmd.AddCommand(bootstrap.New())
 	return cmd
 }
 

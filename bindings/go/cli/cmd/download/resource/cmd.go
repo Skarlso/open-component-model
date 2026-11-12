@@ -16,6 +16,7 @@ import (
 	"ocm.software/open-component-model/bindings/go/blob"
 	"ocm.software/open-component-model/bindings/go/blob/compression"
 	"ocm.software/open-component-model/bindings/go/cli/cmd/download/shared"
+	ocmctx "ocm.software/open-component-model/bindings/go/cli/internal/context"
 	"ocm.software/open-component-model/bindings/go/cli/internal/flags/enum"
 	"ocm.software/open-component-model/bindings/go/cli/internal/repository/ocm"
 	"ocm.software/open-component-model/bindings/go/cli/internal/transformers"
@@ -160,7 +161,8 @@ func DownloadResource(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("parsing component reference %q failed: %w", reference, err)
 	}
-	repoProvider, err := ocm.NewComponentVersionRepositoryForComponentProvider(cmd.Context(), pluginManager.ComponentVersionRepositoryRegistry, credentialGraph, nil, ref)
+	config := ocmctx.FromContext(cmd.Context()).Configuration()
+	repoProvider, err := ocm.NewComponentVersionRepositoryForComponentProvider(cmd.Context(), pluginManager.ComponentVersionRepositoryRegistry, credentialGraph, config, ref)
 	if err != nil {
 		return fmt.Errorf("could not initialize ocm repository: %w", err)
 	}

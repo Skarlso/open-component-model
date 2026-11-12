@@ -241,6 +241,11 @@ func Parse(input string, opts ...Option) (*Ref, error) {
 		return nil, fmt.Errorf("invalid component name %q in %q, must match %q", ref.Component, originalInput, ComponentRegex)
 	}
 
+	// "//<component>" names no repository, so it is left to the configured resolvers.
+	if input == "" && ref.Type == "" {
+		return ref, nil
+	}
+
 	// Step 6: Build repository object using ParseRepository
 	var repositoryRef string
 	if ref.Type != "" {

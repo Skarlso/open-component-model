@@ -34,6 +34,14 @@ func Test_ComponentReference(t *testing.T) {
 			err: assert.NoError,
 		},
 		{
+			input: "//ocm.software/ocmcli:0.23.0",
+			expected: &Ref{
+				Component: "ocm.software/ocmcli",
+				Version:   "0.23.0",
+			},
+			err: assert.NoError,
+		},
+		{
 			input: "github.com/open-component-model/ocm/component-descriptors/ocm.software/ocmcli:0.23.0",
 			expected: &Ref{
 				Type: runtime.NewVersionedType(ociv1.Type, ociv1.Version).String(),

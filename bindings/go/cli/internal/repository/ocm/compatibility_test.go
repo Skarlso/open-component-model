@@ -158,13 +158,13 @@ func TestNewComponentRepositoryProvider(t *testing.T) {
 			require.True(t, isPathMatcherProvider(result), "expected pathMatcherProvider, got %T", result)
 		})
 
-		t.Run("ReturnsNilWhenNeitherRepositoryNorConfig", func(t *testing.T) {
+		t.Run("ErrorsWhenNeitherRepositoryNorConfig", func(t *testing.T) {
 			ctx := context.Background()
 			provider := &mockRepositoryProvider{}
 
 			result, err := NewComponentRepositoryResolver(ctx, provider, nil)
 
-			require.NoError(t, err)
+			require.ErrorContains(t, err, "no repository given and no resolvers configured")
 			require.Nil(t, result)
 		})
 	})

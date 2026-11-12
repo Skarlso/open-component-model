@@ -72,6 +72,7 @@ ocm [sub-command] [flags]
 ### SEE ALSO
 
 * [ocm add]({{< relref "ocm_add.md" >}})	 - Add anything to OCM
+* [ocm bootstrap]({{< relref "ocm_bootstrap.md" >}})	 - Run the bootstrap resource of a component version (EXPERIMENTAL)
 * [ocm completion]({{< relref "ocm_completion.md" >}})	 - Generate the autocompletion script for the specified shell
 * [ocm describe]({{< relref "ocm_describe.md" >}})	 - Describe OCM entities or metadata
 * [ocm download]({{< relref "ocm_download.md" >}})	 - Download anything from OCM

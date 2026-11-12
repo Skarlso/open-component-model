@@ -2,6 +2,7 @@ package ocm
 
 import (
 	"context"
+	"fmt"
 
 	genericv1 "ocm.software/open-component-model/bindings/go/configuration/generic/v1/spec"
 	versioningspec "ocm.software/open-component-model/bindings/go/configuration/versioning/v1alpha1/spec"
@@ -45,6 +46,9 @@ func NewComponentRepositoryResolver(
 	fallbackResolvers, pathMatchers, err := resolvers.ExtractResolvers(options.config, ocirepository.Scheme)
 	if err != nil {
 		return nil, err
+	}
+	if options.repository == nil && len(pathMatchers) == 0 && len(fallbackResolvers) == 0 {
+		return nil, fmt.Errorf("no repository given and no resolvers configured")
 	}
 
 	registry, err := versioningspec.RegistryFromConfig(options.config)
